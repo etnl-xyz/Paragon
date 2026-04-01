@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link id="dynamic-font" rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jura:wght@300;400;500;600;700&display=swap">
     <link href="https://cdn.jsdelivr.net/npm/cesium@1.102/Build/Cesium/Widgets/widgets.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css">
     <script src="https://cdn.jsdelivr.net/npm/cesium@1.102/Build/Cesium/Cesium.js"></script>
     <style>
         :root {
@@ -248,7 +249,11 @@
     <div id="overlay-root"></div>
     <div class="tabview-container" id="tabview">
         <div class="tabs" id="tabs">
-            <div class="tab active" data-tab="implants">
+            <div class="tab active" data-tab="control">
+                <i class="fa fa-sliders"></i>
+                <span class="tooltip">Control</span>
+            </div>
+            <div class="tab " data-tab="implants">
                 <i class="fa-solid fa-satellite-dish"></i>
                 <span class="tooltip">Implants</span>
             </div>
@@ -574,7 +579,7 @@
                         </div>
                     </div>
                     <div class="implant-scroll" id="implant-list">
-                        <div class="empty-state" id="empty-state"><i class="fa-regular fa-circle-dot"></i><p>Awaiting connections</p></div>
+                        <div class="empty-state" id="empty-state"><i class="ph ph-globe-x"></i></div>
                     </div>
                 </div>
             </div>`;
@@ -697,6 +702,7 @@
 
         // -- Core UI Builder System (Settings) ----------------------
         const TAB_DATA = {
+
             settings: {
                 title: 'Settings',
                 grid: [
@@ -718,11 +724,7 @@
                         { ui:'slider', label:'Glow Intensity', min:0, max:2.5, step: 0.1, flag:'GlowIntensity'},
                         { ui:'button', label:'Reset Theme', type:'double', text:'Reset', secondarytext:'Confirm?', flag:'ResetTheme'},
                     ]},
-                    {header:'Globe & Config', span:'hhalf', controls:[
-                        { ui:'dropdown', label:'Imagery Layer', type:'single', options: ['carto-dark','carto-light','osm','esri-imagery'], flag:'GlobeImagery'},
-                        { ui:'button', label:'Reset Camera', type:'single', text:'Home', action:'globeHome' },
-                        { ui:'button', label:'Atmosphere Lighting', type:'single', text:'Toggle', action:'globeNight' },
-                        { ui:'divider'},
+                    {header:'Config', span:'hhalf', controls:[
                         { ui:'dropdown', label:'Notification Position', type:'single', options: ["Top","Top Left","Top Right","Center","Bottom","Bottom Left","Bottom Right"], flag:'NotificationLocation'},
                     ]},
                 ]

@@ -639,7 +639,7 @@
             const fStatus = document.getElementById('footer-status');
             if (!pill) return;
             if (implants.length > 0) {
-                pill.className = 'status-pill live'; stxt.textContent = 'Live'; fStatus.textContent = implants.length + ' active implant' + (implants.length > 1 ? 's' : '');
+                pill.className = 'status-pill live'; stxt.textContent = ' Live'; fStatus.textContent = implants.length + ' active implant' + (implants.length > 1 ? 's' : '');
             } else {
                 pill.className = 'status-pill'; stxt.textContent = 'Offline'; fStatus.textContent = 'Idle';
             }

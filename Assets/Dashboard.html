@@ -833,6 +833,7 @@
                     {header:'Cast', span:'fill', controls:[
                         { ui:'html', content: `
                             <div class="wv-toolbar">
+                                <span class="wv-toolbar-title">Options</span>
                                 <div class="wv-sep"></div>
                                 <div class="tool-btn" onclick="toggleStream()"><i class="ph ph-screencast"></i><span class="tip">Toggle Stream</span></div>
                                 <div class="tool-btn" onclick=""><i class="ph ph-keyboard"></i><span class="tip">Keyboard Passthrough</span></div>
@@ -852,6 +853,8 @@
                             <textarea id="term-out" readonly style="width:100%; height:250px; background:var(--input-bg); color:var(--accent); font-family:monospace; font-size:11px; padding:12px; border:1px solid var(--secondary); border-radius:4px; margin-bottom:8px; resize:vertical; outline:none;"></textarea>
                             <input id="term-in" type="text" placeholder="Enter remote command..." onkeydown="if(event.key==='Enter') sendTerm()" style="width:100%; background:var(--input-bg); color:var(--text-color); font-family:monospace; font-size:11px; padding:10px 12px; border:1px solid var(--secondary); border-radius:4px; outline:none;" />
                             <div class="wv-toolbar">
+                                <span class="wv-toolbar-title">Quick Commands</span>
+                                <div class="wv-sep"></div>
                                 <div class="tool-btn" onclick=""><i class="ph ph-placeholder"></i><span class="tip">Placeholder</span></div>
                             </div>
                         `}
@@ -859,17 +862,21 @@
                     {header:'File Manager', span:'hhalf', controls:[
                         { ui:'html', content: `
                             <div class="wv-toolbar">
+                                <span class="wv-toolbar-title">Options</span>
+                                <div class="wv-sep"></div>
                                 <div class="tool-btn" onclick=""><i class="ph ph-arrows-clockwise"></i><span class="tip">Refresh Files</span></div>
                                 <div class="tool-btn" onclick=""><i class="ph ph-cloud-arrow-down"></i><span class="tip">Clone File</span></div>
                                 <div class="tool-btn" onclick=""><i class="ph ph-cloud-arrow-up"></i><span class="tip">Upload File</span></div>
                                 <div class="tool-btn" onclick=""><i class="ph ph-trash"></i><span class="tip">Delete File</span></div>
                                 <div class="tool-btn" onclick=""><i class="ph ph-folders"></i><span class="tip">Move File</span></div>
+                                <div class="wv-sep"></div>
                             </div>
                         `}
                     ]},
                     {header:'Process List', span:'hhalf', controls:[
                         { ui:'html', content: `
                             <div class="wv-toolbar">
+                                <span class="wv-toolbar-title">Options</span>
                                 <div class="wv-sep"></div>
                                 <div class="tool-btn" onclick="fetchProcesses()"><i class="ph ph-arrows-clockwise"></i><span class="tip">Refresh Processes</span></div>
                                 <div class="tool-btn" onclick=""><i class="ph ph-plus"></i><span class="tip">Create Process</span></div>

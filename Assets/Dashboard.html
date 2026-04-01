@@ -702,7 +702,18 @@
 
         // -- Core UI Builder System (Settings) ----------------------
         const TAB_DATA = {
-
+            control: {
+                title: 'Control',
+                grid: [
+                    {header:'Config', span:'fill', controls:[
+                        { ui:'dropdown',label:'Target Implant',type:'single',options: [],flag:'ImplantTarget'}, <!-- each option is just each Implants Ip so for example the name it shows on Implants tab and Worldview tab that xx.xx.xx.xx:port is what each option is and then it will allow you to interact with said implant through the implants backend itll recieve payloads from Control so it does stuff on backend -->
+                    ]},
+                    {header:'Live', span:'fill', controls:[
+                    ]},
+                    {header:'Control Panel', span:'fill', controls:[
+                    ]},
+                ]
+            },
             settings: {
                 title: 'Settings',
                 grid: [

@@ -277,7 +277,6 @@
                 <div style="margin-left:auto;">
                     <div class="status-pill" id="status-pill">
                         <div class="sdot"></div>
-                        <span id="status-text">Offline</span>
                     </div>
                 </div>
             </div>
@@ -575,13 +574,12 @@
         window.updateImplants = function(implants) {
             _implants = implants;
             const pill = document.getElementById('status-pill');
-            const stxt = document.getElementById('status-text');
             const fStatus = document.getElementById('footer-status');
             if (!pill) return;
             if (implants.length > 0) {
-                pill.className = 'status-pill live'; stxt.textContent = 'Live'; fStatus.textContent = implants.length + ' active implant' + (implants.length > 1 ? 's' : '');
+                pill.className = 'status-pill live'; fStatus.textContent = implants.length + ' active implant' + (implants.length > 1 ? 's' : '');
             } else {
-                pill.className = 'status-pill'; stxt.textContent = 'Offline'; fStatus.textContent = 'Idle';
+                pill.className = 'status-pill'; fStatus.textContent = 'Idle';
             }
 
             const activeIds = implants.map(i => i.ip + ':' + i.port);
@@ -873,7 +871,7 @@
                             </div>
                         `}
                     ]},
-                    {header:'Process List', span:'hhalf', controls:[
+                    {header:'Process Manager', span:'hhalf', controls:[
                         { ui:'html', content: `
                             <div class="wv-toolbar">
                                 <span class="wv-toolbar-title">Options</span>

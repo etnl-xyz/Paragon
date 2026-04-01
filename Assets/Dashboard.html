@@ -167,20 +167,74 @@
         @keyframes cardIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
         .implant-card:hover { border-color: rgba(255, 255, 255, 0.09); transform: translateY(-1px); }
         .implant-card::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: var(--accent); opacity: 0.45; }
-        .card-hd { display: flex; align-items: center; gap: 10px; padding: 11px 14px 11px 16px; border-bottom: 1px solid rgba(255, 255, 255, 0.04); }
-        .card-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 5px rgba(74, 222, 128, 0.5); animation: dpulse 2s infinite; flex-shrink: 0; }
-        .card-ip { font-size: 13px; font-weight: 600; color: var(--text-color); letter-spacing: 0.4px; }
-        .card-port { font-size: 11px; color: var(--text-sub); }
-        .card-uptime { margin-left: auto; font-size: 9px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-sub); background: var(--input-bg); border: 1px solid var(--secondary); border-radius: 4px; padding: 2px 7px; }
-        .card-flag { font-size: 15px; margin-left: 3px; line-height: 1; }
-        .card-bd { display: grid; grid-template-columns: 1fr 1fr; }
-        .card-cell { padding: 10px 14px 10px 16px; display: flex; flex-direction: column; gap: 3px; border-right: 1px solid rgba(255, 255, 255, 0.03); border-bottom: 1px solid rgba(255, 255, 255, 0.03); }
+        .card-hd {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 11px 14px 11px 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+        }
+        .card-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--accent);
+            box-shadow: 0 0 6px rgba(74, 222, 128, 0.6);
+            animation: dpulse 2s infinite;
+            flex-shrink: 0;
+            margin-right: 2px;
+        }
+
+        .card-ip {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-color);
+            letter-spacing: 0.3px;
+        }
+
+        .card-port {
+            font-size: 11px;
+            color: var(--text-sub);
+            margin-left: 2px;
+        }
+
+        .card-uptime {
+            margin-left: auto;
+            font-size: 10px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            color: var(--text-sub);
+            background: var(--input-bg);
+            border: 1px solid var(--secondary);
+            border-radius: 5px;
+            padding: 3px 8px;
+        }
+
+        .card-flag {
+            font-size: 14px;
+            margin-left: 6px;
+            line-height: 1;
+        }
+
+        .card-bd {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+        }
+
+        .card-cell {
+            padding: 11px 15px 11px 16px; 
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            border-right: 1px solid rgba(255, 255, 255, 0.03);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+        }
+
         .card-cell:nth-child(even) { border-right: none; }
         .card-cell:nth-last-child(-n+2) { border-bottom: none; }
         .cell-lbl { font-size: 9px; text-transform: uppercase; letter-spacing: 2px; color: var(--text-sub); }
         .cell-val { font-size: 11px; color: var(--text-color); letter-spacing: 0.3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-        /* Paragon Cesium Layout */
         #world-view-panel { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
         #cesium-wrap { flex: 1; position: relative; overflow: hidden; }
         #cesiumContainer { width: 100%; height: 100%; }

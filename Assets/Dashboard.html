@@ -147,12 +147,46 @@
         .tool-btn:hover .tip { opacity: 1; transform: translateX(-50%) scale(1); }
 
         /* Paragon Stat rows */
-        .stat-row { display: flex; align-items: center; justify-content: space-between; padding: 9px 11px; background: rgba(255, 255, 255, 0.015); border: 1px solid transparent; border-radius: 5px; transition: 0.2s; min-height: 40px; margin-bottom: 2px; }
-        .stat-row:hover { background: rgba(255, 255, 255, 0.03); border-color: var(--secondary); }
-        .stat-lbl { font-size: 11px; color: var(--text-sub); letter-spacing: 0.4px; display: flex; align-items: center; gap: 7px; }
-        .stat-val { font-size: 14px; font-weight: 600; color: var(--text-color); }
-        .stat-val.green { color: var(--accent); }
-        .stat-val.dim { color: var(--text-sub); font-weight: 400; font-size: 12px; }
+        .stat-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 12px; /* slightly more even */
+            background: rgba(255, 255, 255, 0.018); /* tiny bump for depth */
+            border: 1px solid transparent;
+            border-radius: 6px; /* softer than 5px */
+            transition: 0.18s ease; /* smoother */
+            min-height: 42px; /* a bit more breathing room */
+            margin-bottom: 3px; /* less cramped stacking */
+        }
+        .stat-row:hover {
+            background: rgba(255, 255, 255, 0.035);
+            border-color: var(--secondary);
+        }
+        .stat-lbl {
+            font-size: 11px;
+            color: var(--text-sub);
+            letter-spacing: 0.3px; /* reduced from 0.4 */
+            display: flex;
+            align-items: center;
+            gap: 8px; /* slightly more intentional spacing */
+        }
+        .stat-val {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-color);
+            letter-spacing: 0.2px; /* subtle polish */
+        }
+        .stat-val.green {
+            color: var(--accent);
+            text-shadow: 0 0 6px rgba(74, 222, 128, 0.25);
+        }
+        .stat-val.dim {
+            color: var(--text-sub);
+            font-weight: 400;
+            font-size: 12px;
+            letter-spacing: 0.2px;
+        }
         
         /* Paragon Implants Tab Elements */
         .implant-scroll { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 7px; padding-right: 2px; padding-bottom: 6px; }

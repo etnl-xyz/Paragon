@@ -135,7 +135,7 @@
         .color-hash { color: var(--text-sub); font-size: 14px; font-weight: bold; }
         .color-hex-input { background: transparent; border: none; color: var(--text-color); width: 100%; font-family: var(--font-family); font-size: 12px; outline: none; text-transform: uppercase; letter-spacing: 1px; flex: 1; min-width: 0; }
 
-        .tool-btn { background: var(--input-bg); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 5px; width: 24px; height: 24px; display: grid; place-items: center; color: var(--text-sub); cursor: pointer; font-size: 11px; position: relative; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
+        .tool-btn { background: var(--input-bg); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 5px; width: 27.5px; height: 27.5px; display: grid; place-items: center; color: var(--text-sub); cursor: pointer; font-size: 11px; position: relative; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); margin-left: 2.5px; margin-right: 2.5px; }
         .tool-btn:hover { background: var(--tab-hover); border-color: var(--text-sub); color: var(--text-color); }
         .tool-btn:active { transform: scale(0.94); }
         .tool-btn .tip { position: absolute; bottom: calc(100% + 7px); left: 50%; transform: translateX(-50%) scale(0.9); background: var(--tab-bg); border: 1px solid var(--secondary); border-radius: 5px; padding: 4px 8px; font-size: 9px; font-family: var(--font-family); color: var(--text-color); white-space: nowrap; opacity: 0; pointer-events: none; transition: all 0.15s; letter-spacing: 0.5px; z-index: 1001; }
@@ -852,26 +852,18 @@
                             <textarea id="term-out" readonly style="width:100%; height:250px; background:var(--input-bg); color:var(--accent); font-family:monospace; font-size:11px; padding:12px; border:1px solid var(--secondary); border-radius:4px; margin-bottom:8px; resize:vertical; outline:none;"></textarea>
                             <input id="term-in" type="text" placeholder="Enter remote command..." onkeydown="if(event.key==='Enter') sendTerm()" style="width:100%; background:var(--input-bg); color:var(--text-color); font-family:monospace; font-size:11px; padding:10px 12px; border:1px solid var(--secondary); border-radius:4px; outline:none;" />
                             <div class="wv-toolbar">
-                                <div class="wv-sep"></div>
                                 <div class="tool-btn" onclick=""><i class="ph ph-placeholder"></i><span class="tip">Placeholder</span></div>
-                                <div class="tool-btn" onclick=""><i class="ph ph-placeholder"></i><span class="tip">Placeholder</span></div>
-                                <div class="tool-btn" onclick=""><i class="ph ph-placeholder"></i><span class="tip">Placeholder</span></div>
-                                <div class="tool-btn" onclick=""><i class="ph ph-placeholder"></i><span class="tip">Placeholder</span></div>
-                                <div class="tool-btn" onclick=""><i class="ph ph-placeholder"></i><span class="tip">Placeholder</span></div>
-                                <div class="wv-sep"></div>
                             </div>
                         `}
                     ]},
                     {header:'File Manager', span:'hhalf', controls:[
                         { ui:'html', content: `
                             <div class="wv-toolbar">
-                                <div class="wv-sep"></div>
                                 <div class="tool-btn" onclick=""><i class="ph ph-arrows-clockwise"></i><span class="tip">Refresh Files</span></div>
                                 <div class="tool-btn" onclick=""><i class="ph ph-cloud-arrow-down"></i><span class="tip">Clone File</span></div>
                                 <div class="tool-btn" onclick=""><i class="ph ph-cloud-arrow-up"></i><span class="tip">Upload File</span></div>
                                 <div class="tool-btn" onclick=""><i class="ph ph-trash"></i><span class="tip">Delete File</span></div>
                                 <div class="tool-btn" onclick=""><i class="ph ph-folders"></i><span class="tip">Move File</span></div>
-                                <div class="wv-sep"></div>
                             </div>
                         `}
                     ]},
@@ -880,10 +872,10 @@
                             <div class="wv-toolbar">
                                 <div class="wv-sep"></div>
                                 <div class="tool-btn" onclick="fetchProcesses()"><i class="ph ph-arrows-clockwise"></i><span class="tip">Refresh Processes</span></div>
-                                <div class="tool-btn" onclick=""><i class="ph ph-arrows-clockwise"></i><span class="tip">Create Process</span></div>
-                                <div class="tool-btn" onclick=""><i class="ph ph-arrows-clockwise"></i><span class="tip">Terminate Process</span></div>
-                                <div class="tool-btn" onclick=""><i class="ph ph-arrows-clockwise"></i><span class="tip">Freeze Process</span></div>
-                                <div class="tool-btn" onclick=""><i class="ph ph-arrows-clockwise"></i><span class="tip">Thaw Process</span></div>
+                                <div class="tool-btn" onclick=""><i class="ph ph-plus"></i><span class="tip">Create Process</span></div>
+                                <div class="tool-btn" onclick=""><i class="ph ph-x"></i><span class="tip">Terminate Process</span></div>
+                                <div class="tool-btn" onclick=""><i class="fa-solid fa-snowflake"></i><span class="tip">Freeze Process</span></div>
+                                <div class="tool-btn" onclick=""><i class="fa-solid fa-droplet"></i><span class="tip">Thaw Process</span></div>
                                 <div class="wv-sep"></div>
                             </div>
                             <textarea id="ps-out" readonly style="width:100%; height:200px; background:var(--input-bg); color:var(--text-sub); font-family:monospace; font-size:11px; padding:8px; border:1px solid var(--secondary); border-radius:4px; resize:vertical; outline:none; white-space:pre;"></textarea>

